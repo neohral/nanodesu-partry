@@ -11,6 +11,21 @@
       {{ sidebarOpen ? '✕' : '☰' }}
     </button>
 
+    <!-- Name Input Modal -->
+    <div v-if="showNameModal" class="modal-overlay">
+      <div class="modal-dialog">
+        <h3>あなたの名前を入力してください</h3>
+        <input 
+          v-model="userName" 
+          type="text" 
+          placeholder="名前を入力" 
+          class="name-input"
+          @keyup.enter="joinRoom"
+        />
+        <button @click="joinRoom" class="modal-button">参加</button>
+      </div>
+    </div>
+
     <!-- Sidebar -->
     <div class="sidebar" :class="{ open: sidebarOpen }">
       <div class="sidebar-header">
@@ -149,6 +164,8 @@ const userId = ref("")
 const activeTab = ref("queue")
 const hideQueue = ref(false)
 const hideVideo = ref(false)
+const userName = ref("")
+const showNameModal = ref(false)
 let player = null
 let partyState = "waiting" // waiting, preparing, playing, pausing, catching-up
 let currentVideoStartTime = null
@@ -198,6 +215,12 @@ function changeOpacity (opacity) {
   iframe.style.opacity = opacity
   // opacityが0の時にクリック不可にする
   iframe.style.pointerEvents = opacity === "0" || opacity === 0 ? "none" : "auto"
+}
+
+function joinRoom() {
+  const name = userName.value.trim() || "Anonymous"
+  socket.emit("join-room", { roomId, name })
+  showNameModal.value = false
 }
 
 function startPlayback(timestamp) {
@@ -265,7 +288,7 @@ onMounted(() => {
           iframe.style.position = "absolute"
           iframe.style.top = "0"
           iframe.style.left = "0"
-          socket.emit("join-room", { roomId })
+          showNameModal.value = true
         },
         onStateChange: (event) => {
           console.log("Player state changed:", event.data)
@@ -682,6 +705,82 @@ onMounted(() => {
 }
 
 /* -------- MOBILE -------- */
+
+/* -------- MODAL -------- */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal-dialog {
+  background: white;
+  border-radius: 8px;
+  padding: 30px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s ease-out;
+}
+
+.modal-dialog h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  color: #333;
+  text-align: center;
+}
+
+.name-input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 20px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.name-input:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+}
+
+.modal-button {
+  width: 100%;
+  padding: 12px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.modal-button:hover {
+  background: #45a049;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 @media (max-width: 768px) {
   .sidebar {

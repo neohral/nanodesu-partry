@@ -39,7 +39,7 @@ async function fetchVideoInfo(videoId) {
 
 io.on("connection", (socket) => {
 
-  socket.on("join-room", ({ roomId }) => {
+  socket.on("join-room", ({ roomId, name }) => {
     socket.join(roomId)
 
     if (!roomState[roomId]) {
@@ -58,7 +58,7 @@ io.on("connection", (socket) => {
         hideQueue: false
       }
     }
-    roomState[roomId].members.push(socket.id)
+    roomState[roomId].members.push({id: socket.id, name: name})
     socket.emit("room-init", roomState[roomId])
     io.to(roomId).emit("sync-stats", roomState[roomId])
   })
@@ -133,9 +133,9 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     for (const roomId in roomState) {
       const room = roomState[roomId]
-      room.members = room.members.filter(id => id !== socket.id)
+      room.members = room.members.filter(member => member.id !== socket.id)
       if (room.leader === socket.id) {
-        room.leader = room.members[0] || null
+        room.leader = room.members[0] ? room.members[0].id : null
       }
       room.members.length === 0 && delete roomState[roomId]
       if (roomState[roomId]) {
