@@ -233,6 +233,7 @@ function startPlayback(timestamp) {
 socket.on("room-init", (state) => {
   userId.value = socket.id
   hideQueue.value = state.hideQueue
+  hideVideo.value = state.opacity === "0" || state.opacity === 0
   changeOpacity(state.opacity)
   if (state.currentVideoId) {
     partyState = "catching-up"
