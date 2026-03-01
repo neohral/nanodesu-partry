@@ -91,20 +91,22 @@
         <!-- Settings Tab -->
         <div v-if="activeTab === 'settings'" class="tab-content">
           <div class="settings-section">
-            <h4>Settings</h4>
-            <!-- <div class="setting-item">
-              <label>
-                <input type="checkbox" v-model="enableChatSync" />
-                Enable chat sync
-              </label>
-            </div> -->
+            <h4>Intro</h4>
+            <div v-if="gamemaster" class="gamemaster-buttons">
+              <button class="intro-button gamemaster-correct-button">正解</button>
+              <button class="intro-button gamemaster-incorrect-button">不正解</button>
+            </div>
+            <button v-else class="intro-button player-button">早押し</button>
           </div>
 
           <div class="members-section">
             <h4>Members ({{ roomState.members.length }})</h4>
             <div class="members-list">
-              <div v-for="member in roomState.members" :key="member.id" class="member-item">
-                <span>{{ member.name || 'Anonymous' }}</span>
+              <div v-for="member in roomState.members" :key="member.id" class="member-item" :class="{ 'has-video': member.video }">
+                <div class="member-name-wrapper">
+                  <span>{{ member.name || 'Anonymous' }}</span>
+                  <!-- <span v-if="member.video" class="video-indicator"></span> -->
+                </div>
                 <span v-if="member.id === roomState.leader" class="leader-badge">Leader</span>
               </div>
             </div>
@@ -115,6 +117,13 @@
         <div v-if="activeTab === 'leader' && userId === roomState.leader" class="tab-content">
           <div class="leader-commands">
             <h4>Leader Commands</h4>
+            <button 
+              @click="startGame" 
+              :disabled="!allMembersHaveVideo"
+              class="command-button success-button"
+            >
+              game start
+            </button>
             <button @click="skipToNextVideo" class="command-button danger-button">
               Skip to next video
             </button>
@@ -142,7 +151,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue"
+import { ref, computed, onMounted, watch } from "vue"
 import { useRoute } from "vue-router"
 import { io } from "socket.io-client"
 import draggable from "vuedraggable"
@@ -166,9 +175,15 @@ const hideQueue = ref(false)
 const hideVideo = ref(false)
 const userName = ref("")
 const showNameModal = ref(false)
+const gamemaster = ref(false)
 let player = null
 let partyState = "waiting" // waiting, preparing, playing, pausing, catching-up
 let currentVideoStartTime = null
+
+const allMembersHaveVideo = computed(() => {
+  return roomState.value.members.length > 0 && 
+         roomState.value.members.every(member => member.video)
+})
 
 function extractVideoId(url) {
   const reg = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/
@@ -230,6 +245,10 @@ function startPlayback(timestamp) {
   partyState = "willplay"
 }
 
+function startGame() {
+  socket.emit("start-game", { roomId })
+}
+
 socket.on("room-init", (state) => {
   userId.value = socket.id
   hideQueue.value = state.hideQueue
@@ -250,7 +269,8 @@ socket.on("queue-updated", (newQueue) => {
   roomState.value.queue = newQueue
 })
 
-socket.on("prepare-video", ({ videoId }) => {
+socket.on("prepare-video", ({ videoId, user }) => {
+  gamemaster.value = (user === userId.value)
   partyState = "preparing"
   player.cueVideoById(videoId)
 })
@@ -557,6 +577,26 @@ onMounted(() => {
   border: 1px solid #eee;
   border-radius: 4px;
   font-size: 13px;
+  transition: border-left-color 0.2s;
+}
+
+.member-item.has-video {
+  border-left: 4px solid #4CAF50;
+}
+
+.member-name-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.video-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #4CAF50;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .leader-badge {
@@ -592,8 +632,15 @@ onMounted(() => {
   color: white;
 }
 
-.success-button:hover {
+.success-button:hover:not(:disabled) {
   background: #45a049;
+}
+
+.success-button:disabled {
+  background: #ccc;
+  color: #666;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .danger-button {
@@ -667,6 +714,55 @@ onMounted(() => {
 
 .add-button:hover {
   background: #45a049;
+}
+
+/* -------- INTRO BUTTON -------- */
+
+.gamemaster-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.intro-button {
+  flex: 1;
+  padding: 12px;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.intro-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.gamemaster-correct-button {
+  background: #4CAF50;
+}
+
+.gamemaster-correct-button:hover {
+  background: #45a049;
+}
+
+.gamemaster-incorrect-button {
+  background: #f44336;
+}
+
+.gamemaster-incorrect-button:hover {
+  background: #da190b;
+}
+
+.player-button {
+  background: #2196F3;
+  width: 100%;
+}
+
+.player-button:hover {
+  background: #0b7dda;
 }
 
 /* -------- QUEUE -------- */

@@ -47,23 +47,29 @@ io.on("connection", (socket) => {
         members: [],
         leader: socket.id,
         currentVideoId: null,
+        currentVideoUser: null,
         currentVideoStartTime: null,
         currentVideoStatus: "waiting",
         currentVideoChangeTime: null,
+        gameStatus: "waiting",
+        gameMaster: null,
+        gameAnswerQueue: [],
         queue: [],
+        gameQueue: [],
         loadingUsers: [],
         expectedUsers: [],
         timeoutId: "",
-        opacity: 1,
-        hideQueue: false
+        opacity: 0,
+        hideQueue: true
       }
     }
-    roomState[roomId].members.push({id: socket.id, name: name})
+    roomState[roomId].members.push({id: socket.id, name: name, videoId: null})
     socket.emit("room-init", roomState[roomId])
     io.to(roomId).emit("sync-stats", roomState[roomId])
   })
 
   socket.on("add-video", async ({ roomId, videoId }) => {
+    if(roomState[roomId].gameStatus !== "waiting") return
     const info = await fetchVideoInfo(videoId)
     if (!info) return
 
@@ -73,12 +79,35 @@ io.on("connection", (socket) => {
       ...info
     }
 
-    roomState[roomId].queue.push(video)
-    io.to(roomId).emit("queue-updated", roomState[roomId].queue)
-
-    if(!roomState[roomId].currentVideoId){
-      prepareVideo(roomId)
+    let loadedCnt = 0;
+    for (const member of roomState[roomId].members) {
+      if (member.id === socket.id) {
+        member.video = video
+      }
+      if (member.video) {
+        loadedCnt++
+      }
     }
+    if (loadedCnt === roomState[roomId].members.length) {
+      roomState[roomId].gameStatus = "prepared"
+    }
+    io.to(roomId).emit("sync-stats", roomState[roomId])
+  })
+
+  socket.on("start-game", ({ roomId }) => {
+    if (socket.id != roomState[roomId].leader) return
+    roomState[roomId].queue = []
+    roomState[roomId].gameQueue = []
+    roomState[roomId].gameStatus = "playing"
+    for (const member of roomState[roomId].members) {
+      if (member.video) {
+          roomState[roomId].gameQueue.push(member.video)
+          member.video = null
+      }
+    }
+    roomState[roomId].queue = roomState[roomId].gameQueue
+    io.to(roomId).emit("sync-stats", roomState[roomId])
+    prepareVideo(roomId)
   })
 
   socket.on("reorder-queue", ({ roomId, queue }) => {
@@ -155,11 +184,12 @@ function prepareVideo(roomId) {
     return
   }
   room.currentVideoId = next.videoId
+  room.gameMaster = next.user
   const clients = io.sockets.adapter.rooms.get(roomId) || new Set()
   room.expectedUsers = Array.from(clients)
   room.loadingUsers = []
   room.currentVideoPauseStacks = 0
-  io.to(roomId).emit("prepare-video", { videoId: next.videoId })
+  io.to(roomId).emit("prepare-video", { videoId: next.videoId, user: next.user })
   io.to(roomId).emit("queue-updated", room.queue)
   room.timeoutId = setTimeout(() => startPlayback(roomId), 5000)
 }
