@@ -98,6 +98,7 @@
                   <img :src="element.thumbnail" width="80" />
                   <div class="queue-item-info">
                     <div class="queue-item-title">{{ element.title }}</div>
+                    <div class="queue-item-user">{{ element.userName }}</div>
                   </div>
                 </div>
               </template>
@@ -1104,6 +1105,12 @@ onMounted(() => {
 .queue-item-title {
   font-size: 13px;
   word-break: break-word;
+}
+
+.queue-item-user {
+  font-size: 11px;
+  color: #999;
+  margin-top: 4px;
 }
 
 /* -------- MOBILE -------- */
