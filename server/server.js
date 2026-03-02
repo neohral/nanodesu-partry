@@ -63,7 +63,10 @@ io.on("connection", (socket) => {
         hideQueue: true
       }
     }
-    roomState[roomId].members.push({id: socket.id, name: name, videoId: null})
+    if(roomState[roomId].gameStatus==="prepared"){
+      roomState[roomId].gameStatus="waiting"
+    }
+    roomState[roomId].members.push({id: socket.id, name: name, videoId: null, score: 0})
     socket.emit("room-init", roomState[roomId])
     io.to(roomId).emit("sync-stats", roomState[roomId])
   })
@@ -80,6 +83,7 @@ io.on("connection", (socket) => {
     }
 
     let loadedCnt = 0;
+    //TODO: ループではなく、Findして更新するようにする
     for (const member of roomState[roomId].members) {
       if (member.id === socket.id) {
         member.video = video
@@ -94,18 +98,56 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("sync-stats", roomState[roomId])
   })
 
+  socket.on("answer-question", ({ roomId, userId }) => {
+    const room = roomState[roomId]
+    const member = room.members.find(m => m.id === userId)
+    if (member) {
+      if (room.gameAnswerQueue.find(m => m.id === member.id)) return
+      room.gameStatus = "answered"
+      room.gameAnswerQueue.push(member)
+      io.to(roomId).emit("user-answered", { users: room.gameAnswerQueue })
+      videoStateChange(roomId, "pausing")
+    }
+  })
+
+  socket.on("gamemaster-answer", ({ roomId, correct, score }) => {
+    const room = roomState[roomId]
+    const answeredUser = room.gameAnswerQueue.shift()
+    if (!answeredUser) return
+
+    if (correct) {
+      correctuser = room.members.find(m => m.id === answeredUser.id)
+      if(correctuser) correctuser.score += score
+      roomState[roomId].opacity = 1
+      io.to(roomId).emit("sync-opacity", {opacity : roomState[roomId].opacity})
+      room.gameAnswerQueue = []
+      io.to(roomId).emit("user-answered-result", { user: answeredUser, correct })
+      videoStateChange(roomId, "playing")
+    }else{
+      io.to(roomId).emit("user-answered", { users: room.gameAnswerQueue })
+      if(room.gameAnswerQueue.length === 0){
+        videoStateChange(roomId, "playing")
+      }
+      io.to(roomId).emit("user-answered-result", { user: answeredUser, correct })
+    }
+    io.to(roomId).emit("sync-stats", roomState[roomId])
+
+    
+  });
+
   socket.on("start-game", ({ roomId }) => {
     if (socket.id != roomState[roomId].leader) return
     roomState[roomId].queue = []
     roomState[roomId].gameQueue = []
     roomState[roomId].gameStatus = "playing"
+    roomState[roomId].hideQueue = false
     for (const member of roomState[roomId].members) {
       if (member.video) {
           roomState[roomId].gameQueue.push(member.video)
           member.video = null
       }
     }
-    roomState[roomId].queue = roomState[roomId].gameQueue
+    roomState[roomId].queue = [...roomState[roomId].gameQueue]
     io.to(roomId).emit("sync-stats", roomState[roomId])
     prepareVideo(roomId)
   })
@@ -116,7 +158,7 @@ io.on("connection", (socket) => {
   })
 
   socket.on("video-ended", ({ roomId }) => {
-    if (socket.id != roomState[roomId].leader) return
+    if (socket.id != roomState[roomId].leader || socket.id != roomState[roomId].gameMaster) return
     prepareVideo(roomId)
   })
 
@@ -133,15 +175,7 @@ io.on("connection", (socket) => {
   })
 
    socket.on("video-state-change", ({ roomId,states }) => {
-    if (states === "playing") {
-      roomState[roomId].currentVideoStartTime+=(Date.now()-roomState[roomId].currentVideoChangeTime);
-    }
-    if (states === "pausing") {
-      roomState[roomId].currentVideoChangeTime = Date.now()
-    }
-    
-    io.to(roomId).emit("video-sync-state", {states,fixedStartTime:roomState[roomId].currentVideoStartTime})
-    roomState[roomId].currentVideoStatus = states
+    videoStateChange(roomId, states)
    })
 
   socket.on("toggle-opacity", ({ roomId }) => {
@@ -172,6 +206,10 @@ io.on("connection", (socket) => {
       }
     }
   });
+
+  socket.on("next-question", ({ roomId }) => {
+    prepareVideo(roomId)
+  })
 })
 
 function prepareVideo(roomId) {
@@ -180,6 +218,9 @@ function prepareVideo(roomId) {
   if (!next) {
     room.currentVideoId = null
     room.currentVideoStatus = "waiting"
+    room.queue = room.gameQueue
+    room.hideQueue = false
+    io.to(roomId).emit("sync-hide-queue", {hideQueue : roomState[roomId].hideQueue})
     io.to(roomId).emit("queue-updated", room.queue)
     return
   }
@@ -192,6 +233,23 @@ function prepareVideo(roomId) {
   io.to(roomId).emit("prepare-video", { videoId: next.videoId, user: next.user })
   io.to(roomId).emit("queue-updated", room.queue)
   room.timeoutId = setTimeout(() => startPlayback(roomId), 5000)
+}
+
+function videoStateChange(roomId, states) {
+  if (states === "playing") {
+      roomState[roomId].currentVideoStartTime+=(Date.now()-roomState[roomId].currentVideoChangeTime);
+      roomState[roomId].currentVideoChangeTime = null
+    }
+    if (states === "pausing") {
+      // 一時停止を複数回行った場合に、開始時間を更新する
+      if(roomState[roomId].currentVideoChangeTime){
+        roomState[roomId].currentVideoStartTime+=(Date.now()-roomState[roomId].currentVideoChangeTime);
+      }
+      roomState[roomId].currentVideoChangeTime = Date.now()
+    }
+    
+    io.to(roomId).emit("video-sync-state", {states,fixedStartTime:roomState[roomId].currentVideoStartTime})
+    roomState[roomId].currentVideoStatus = states
 }
 
 function startPlayback(roomId) {
