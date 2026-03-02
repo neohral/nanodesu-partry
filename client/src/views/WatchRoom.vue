@@ -78,7 +78,7 @@
                   <img :src="element.thumbnail" width="80" />
                   <div class="queue-item-info">
                     <div class="queue-item-title">{{ element.title }}</div>
-                    <div class="queue-item-user">{{ element.user }}</div>
+                    <div class="queue-item-user">{{ element.userName }}</div>
                   </div>
                 </div>
               </template>

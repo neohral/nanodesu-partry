@@ -67,9 +67,12 @@ io.on("connection", (socket) => {
     const info = await fetchVideoInfo(videoId)
     if (!info) return
 
+    const username = roomState[roomId].members.find(m => m.id === socket.id)?.name
+
     const video = {
       id: crypto.randomUUID(),
       user: socket.id,
+      userName: username ? username : "anonymous",
       ...info
     }
 
