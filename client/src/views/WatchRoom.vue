@@ -85,28 +85,6 @@
             <input v-model="videoUrl" placeholder="YouTube URL" class="url-input" />
             <button @click="addVideo" class="add-button">Add</button>
           </div>
-
-          <div v-if="!hideQueue" class="queue-display">
-            <draggable
-              v-model="roomState.queue"
-              item-key="id"
-              @end="onReorder"
-              class="queue-container"
-            >
-              <template #item="{ element }">
-                <div class="queue-item">
-                  <img :src="element.thumbnail" width="80" />
-                  <div class="queue-item-info">
-                    <div class="queue-item-title">{{ element.title }}</div>
-                    <div class="queue-item-user">{{ element.userName }}</div>
-                  </div>
-                </div>
-              </template>
-            </draggable>
-          </div>
-          <div v-else class="queue-hidden-message">
-            <p>⚠️ Queue is hidden by the leader</p>
-          </div>
         </div>
 
         <!-- Settings Tab -->
@@ -141,7 +119,7 @@
               </div>
               <button @click="skipToNextVideo" class="intro-button gamemaster-incorrect-button">スキップ</button>
             </div>
-            <button v-else @click="answerQuestion" :disabled="answeringUser && answeringUser.find(m => m.id === userId) || answerCooldown > 0" class="intro-button player-button">早押し{{ answerCooldown > 0 ? ` (${answerCooldown}s)` : '' }}</button>
+            <button v-else @click="answerQuestion" :disabled="!gameStarted || answeringUser && answeringUser.find(m => m.id === userId) || answerCooldown > 0" class="intro-button player-button">早押し{{ answerCooldown > 0 ? ` (${answerCooldown}s)` : '' }}</button>
           </div>
 
           <div class="members-section">
@@ -156,6 +134,30 @@
                 <span v-if="member.id === roomState.leader" class="leader-badge">Leader</span>
               </div>
             </div>
+
+            <div v-if="!hideQueue" class="queue-display">
+            <draggable
+              v-model="roomState.queue"
+              item-key="id"
+              @end="onReorder"
+              class="queue-container"
+            >
+              <template #item="{ element }">
+                <div class="queue-item">
+                  <img :src="element.thumbnail" width="80" />
+                  <div class="queue-item-info">
+                    <div class="queue-item-title">{{ element.title }}</div>
+                    <div class="queue-item-user">{{ element.userName }}</div>
+                  </div>
+                </div>
+              </template>
+            </draggable>
+          </div>
+          <div v-else class="queue-hidden-message">
+            <p>⚠️ Queue is hidden by the leader</p>
+          </div>
+
+
           </div>
         </div>
 
@@ -222,6 +224,7 @@ const hideVideo = ref(false)
 const userName = ref("")
 const showNameModal = ref(false)
 const gamemaster = ref(false)
+const gameStarted = ref(false)
 const answeringUser = ref([])
 const correctAnswerUser = ref(null)
 const countdown = ref(0)
@@ -340,6 +343,7 @@ socket.on("room-init", (state) => {
 })
 
 socket.on("sync-stats", (state) => {
+  gameStarted.value = state.gameStatus === "playing" ? true : false
   roomState.value = state
 })
 

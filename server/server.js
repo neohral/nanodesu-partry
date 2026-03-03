@@ -143,7 +143,9 @@ io.on("connection", (socket) => {
     roomState[roomId].queue = []
     roomState[roomId].gameQueue = []
     roomState[roomId].gameStatus = "playing"
-    roomState[roomId].hideQueue = false
+    roomState[roomId].hideQueue = true
+    io.to(roomId).emit("sync-hide-queue", {hideQueue : roomState[roomId].hideQueue})
+    
     for (const member of roomState[roomId].members) {
       if (member.video) {
           roomState[roomId].gameQueue.push(member.video)
@@ -221,10 +223,12 @@ function prepareVideo(roomId) {
   if (!next) {
     room.currentVideoId = null
     room.currentVideoStatus = "waiting"
+    room.gameStatus = "waiting"
     room.queue = room.gameQueue
     room.hideQueue = false
-    io.to(roomId).emit("sync-hide-queue", {hideQueue : roomState[roomId].hideQueue})
+    io.to(roomId).emit("sync-hide-queue", {hideQueue : room.hideQueue})
     io.to(roomId).emit("queue-updated", room.queue)
+    io.to(roomId).emit("sync-stats", roomState[roomId])
     return
   }
   room.currentVideoId = next.videoId
@@ -233,6 +237,8 @@ function prepareVideo(roomId) {
   room.expectedUsers = Array.from(clients)
   room.loadingUsers = []
   room.currentVideoPauseStacks = 0
+  room.opacity = 0
+  io.to(roomId).emit("sync-opacity", {opacity : room.opacity})
   io.to(roomId).emit("prepare-video", { videoId: next.videoId, user: next.user })
   io.to(roomId).emit("queue-updated", room.queue)
   room.timeoutId = setTimeout(() => startPlayback(roomId), 5000)
