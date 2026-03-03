@@ -154,13 +154,13 @@ io.on("connection", (socket) => {
 function prepareVideo(roomId) {
   const room = roomState[roomId]
   const next = room.queue.shift()
-  room.historyQueue.push(next)
   if (!next) {
     room.currentVideoId = null
     room.currentVideoStatus = "waiting"
     io.to(roomId).emit("queue-updated", { queue: room.queue, historyQueue: room.historyQueue })
     return
   }
+  room.historyQueue.push(next)
   room.currentVideoId = next.videoId
   const clients = io.sockets.adapter.rooms.get(roomId) || new Set()
   room.expectedUsers = Array.from(clients)
