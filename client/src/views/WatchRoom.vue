@@ -85,6 +85,40 @@
             <input v-model="videoUrl" placeholder="YouTube URL" class="url-input" />
             <button @click="addVideo" class="add-button">Add</button>
           </div>
+                      <div v-if="!hideQueue" class="queue-display">
+            <draggable
+              v-model="roomState.queue"
+              item-key="id"
+              @end="onReorder"
+              class="queue-container"
+            >
+              <template #item="{ element }">
+                <div class="queue-item">
+                  <img :src="element.thumbnail" width="80" />
+                  <div class="queue-item-info">
+                    <div class="queue-item-title">{{ element.title }}</div>
+                    <div class="queue-item-user">{{ element.userName }}</div>
+                  </div>
+                </div>
+              </template>
+            </draggable>
+
+            <div v-if="roomState.historyQueue.length > 0" class="history-section">
+              <h4>再生済み</h4>
+              <div class="history-queue-container">
+                <div v-for="element in roomState.historyQueue" :key="`history-${element.id}`" class="queue-item">
+                  <img :src="element.thumbnail" width="80" />
+                  <div class="queue-item-info">
+                    <div class="queue-item-title">{{ element.title }}</div>
+                    <div class="queue-item-user">{{ element.userName }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="queue-hidden-message">
+            <p>⚠️ Queue is hidden by the leader</p>
+          </div>
         </div>
 
         <!-- Settings Tab -->
@@ -134,43 +168,6 @@
                 <span v-if="member.id === roomState.leader" class="leader-badge">Leader</span>
               </div>
             </div>
-
-            <div v-if="!hideQueue" class="queue-display">
-            <draggable
-              v-model="roomState.queue"
-              item-key="id"
-              @end="onReorder"
-              class="queue-container"
-            >
-              <template #item="{ element }">
-                <div class="queue-item">
-                  <img :src="element.thumbnail" width="80" />
-                  <div class="queue-item-info">
-                    <div class="queue-item-title">{{ element.title }}</div>
-                    <div class="queue-item-user">{{ element.userName }}</div>
-                  </div>
-                </div>
-              </template>
-            </draggable>
-
-            <div v-if="roomState.historyQueue.length > 0" class="history-section">
-              <h4>再生済み</h4>
-              <div class="history-queue-container">
-                <div v-for="element in roomState.historyQueue" :key="`history-${element.id}`" class="queue-item">
-                  <img :src="element.thumbnail" width="80" />
-                  <div class="queue-item-info">
-                    <div class="queue-item-title">{{ element.title }}</div>
-                    <div class="queue-item-user">{{ element.userName }}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div v-else class="queue-hidden-message">
-            <p>⚠️ Queue is hidden by the leader</p>
-          </div>
-
-
           </div>
         </div>
 
