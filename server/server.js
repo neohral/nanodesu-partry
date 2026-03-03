@@ -56,6 +56,7 @@ io.on("connection", (socket) => {
         gameAnswerQueue: [],
         queue: [],
         gameQueue: [],
+        historyQueue: [],
         loadingUsers: [],
         expectedUsers: [],
         timeoutId: "",
@@ -73,10 +74,11 @@ io.on("connection", (socket) => {
 
   socket.on("add-video", async ({ roomId, videoId }) => {
     if(roomState[roomId].gameStatus !== "waiting") return
+    const room = roomState[roomId]
     const info = await fetchVideoInfo(videoId)
     if (!info) return
 
-    const username = roomState[roomId].members.find(m => m.id === socket.id)?.name
+    const username = room.members.find(m => m.id === socket.id)?.name
 
     const video = {
       id: crypto.randomUUID(),
@@ -158,8 +160,9 @@ io.on("connection", (socket) => {
   })
 
   socket.on("reorder-queue", ({ roomId, queue }) => {
-    roomState[roomId].queue = queue
-    io.to(roomId).emit("queue-updated", queue)
+    const room = roomState[roomId]
+    room.queue = queue
+    io.to(roomId).emit("queue-updated", { queue: room.queue, historyQueue: room.historyQueue })
   })
 
   socket.on("video-ended", ({ roomId }) => {
@@ -220,6 +223,7 @@ io.on("connection", (socket) => {
 function prepareVideo(roomId) {
   const room = roomState[roomId]
   const next = room.queue.shift()
+  room.historyQueue.push(next)
   if (!next) {
     room.currentVideoId = null
     room.currentVideoStatus = "waiting"
