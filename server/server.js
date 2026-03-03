@@ -222,7 +222,6 @@ io.on("connection", (socket) => {
 function prepareVideo(roomId) {
   const room = roomState[roomId]
   const next = room.queue.shift()
-  room.historyQueue.push(next)
   if (!next) {
     room.currentVideoId = null
     room.currentVideoStatus = "waiting"
@@ -233,6 +232,7 @@ function prepareVideo(roomId) {
     io.to(roomId).emit("sync-stats", roomState[roomId])
     return
   }
+  room.historyQueue.push(next)
   room.currentVideoId = next.videoId
   room.gameMaster = next.user
   const clients = io.sockets.adapter.rooms.get(roomId) || new Set()
