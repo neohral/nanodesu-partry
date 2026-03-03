@@ -83,6 +83,19 @@
                 </div>
               </template>
             </draggable>
+
+            <div v-if="roomState.historyQueue.length > 0" class="history-section">
+              <h4>再生済み</h4>
+              <div class="history-queue-container">
+                <div v-for="element in roomState.historyQueue" :key="`history-${element.id}`" class="queue-item">
+                  <img :src="element.thumbnail" width="80" />
+                  <div class="queue-item-info">
+                    <div class="queue-item-title">{{ element.title }}</div>
+                    <div class="queue-item-user">{{ element.userName }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           <div v-else class="queue-hidden-message">
             <p>⚠️ Queue is hidden by the leader</p>
@@ -156,7 +169,8 @@ const roomState = ref({
   members: [],
   leader: null,
   currentVideoId: null,
-  queue: []
+  queue: [],
+  historyQueue: [],
 })
 const videoUrl = ref("")
 const playerContainer = ref(null)
@@ -247,8 +261,10 @@ socket.on("sync-stats", (state) => {
   roomState.value = state
 })
 
-socket.on("queue-updated", (newQueue) => {
-  roomState.value.queue = newQueue
+socket.on("queue-updated", (obj) => {
+  console.log(obj.historyQueue)
+  roomState.value.queue = obj.queue
+  roomState.value.historyQueue = obj.historyQueue
 })
 
 socket.on("prepare-video", ({ videoId }) => {
@@ -673,6 +689,23 @@ onMounted(() => {
 /* -------- QUEUE -------- */
 
 .queue-container {
+  padding: 0;
+  margin: 0;
+}
+
+.history-section {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #ddd;
+}
+
+.history-section h4 {
+  margin: 0 0 15px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.history-queue-container {
   padding: 0;
   margin: 0;
 }

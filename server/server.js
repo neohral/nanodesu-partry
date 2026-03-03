@@ -51,6 +51,7 @@ io.on("connection", (socket) => {
         currentVideoStatus: "waiting",
         currentVideoChangeTime: null,
         queue: [],
+        historyQueue: [],
         loadingUsers: [],
         expectedUsers: [],
         timeoutId: "",
@@ -64,10 +65,11 @@ io.on("connection", (socket) => {
   })
 
   socket.on("add-video", async ({ roomId, videoId }) => {
+    const room = roomState[roomId]
     const info = await fetchVideoInfo(videoId)
     if (!info) return
 
-    const username = roomState[roomId].members.find(m => m.id === socket.id)?.name
+    const username = room.members.find(m => m.id === socket.id)?.name
 
     const video = {
       id: crypto.randomUUID(),
@@ -76,17 +78,18 @@ io.on("connection", (socket) => {
       ...info
     }
 
-    roomState[roomId].queue.push(video)
-    io.to(roomId).emit("queue-updated", roomState[roomId].queue)
+    room.queue.push(video)
+    io.to(roomId).emit("queue-updated", { queue: room.queue, historyQueue: room.historyQueue })
 
-    if(!roomState[roomId].currentVideoId){
+    if(!room.currentVideoId){
       prepareVideo(roomId)
     }
   })
 
   socket.on("reorder-queue", ({ roomId, queue }) => {
-    roomState[roomId].queue = queue
-    io.to(roomId).emit("queue-updated", queue)
+    const room = roomState[roomId]
+    room.queue = queue
+    io.to(roomId).emit("queue-updated", { queue: room.queue, historyQueue: room.historyQueue })
   })
 
   socket.on("video-ended", ({ roomId }) => {
@@ -151,10 +154,11 @@ io.on("connection", (socket) => {
 function prepareVideo(roomId) {
   const room = roomState[roomId]
   const next = room.queue.shift()
+  room.historyQueue.push(next)
   if (!next) {
     room.currentVideoId = null
     room.currentVideoStatus = "waiting"
-    io.to(roomId).emit("queue-updated", room.queue)
+    io.to(roomId).emit("queue-updated", { queue: room.queue, historyQueue: room.historyQueue })
     return
   }
   room.currentVideoId = next.videoId
@@ -163,7 +167,8 @@ function prepareVideo(roomId) {
   room.loadingUsers = []
   room.currentVideoPauseStacks = 0
   io.to(roomId).emit("prepare-video", { videoId: next.videoId })
-  io.to(roomId).emit("queue-updated", room.queue)
+  io.to(roomId).emit("queue-updated", { queue: room.queue, historyQueue: room.historyQueue })
+  
   room.timeoutId = setTimeout(() => startPlayback(roomId), 5000)
 }
 
