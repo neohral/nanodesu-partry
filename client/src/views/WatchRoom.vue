@@ -65,13 +65,7 @@
     <div v-if="showNameModal" class="modal-overlay">
       <div class="modal-dialog">
         <h3>あなたの名前を入力してください</h3>
-        <input 
-          v-model="userName" 
-          type="text" 
-          placeholder="名前を入力" 
-          class="name-input"
-          @keyup.enter="joinRoom"
-        />
+        <input v-model="userName" type="text" placeholder="名前を入力" class="name-input" @keyup.enter="joinRoom" />
         <button @click="joinRoom" class="modal-button">参加</button>
       </div>
     </div>
@@ -79,31 +73,19 @@
     <!-- Sidebar -->
     <div class="sidebar" :class="{ open: sidebarOpen }">
       <div class="sidebar-header">
-        <h3>{{ roomId }} watch party<span v-if="userId===roomState.leader">👑</span></h3>
+        <h3>{{ roomId }} watch party<span v-if="userId === roomState.leader">👑</span></h3>
       </div>
 
       <!-- Tabs -->
       <div class="sidebar-tabs">
-        <button 
-          @click="activeTab = 'queue'" 
-          :class="{ active: activeTab === 'queue' }"
-          class="tab-button"
-        >
+        <button @click="activeTab = 'queue'" :class="{ active: activeTab === 'queue' }" class="tab-button">
           Queue
         </button>
-        <button 
-          @click="activeTab = 'settings'" 
-          :class="{ active: activeTab === 'settings' }"
-          class="tab-button"
-        >
+        <button @click="activeTab = 'settings'" :class="{ active: activeTab === 'settings' }" class="tab-button">
           Settings
         </button>
-        <button 
-          v-if="userId === roomState.leader"
-          @click="activeTab = 'leader'" 
-          :class="{ active: activeTab === 'leader' }"
-          class="tab-button leader-tab"
-        >
+        <button v-if="userId === roomState.leader" @click="activeTab = 'leader'"
+          :class="{ active: activeTab === 'leader' }" class="tab-button leader-tab">
           Commands
         </button>
       </div>
@@ -115,13 +97,8 @@
             <input v-model="videoUrl" placeholder="YouTube URL" class="url-input" />
             <button @click="addVideo" class="add-button">Add</button>
           </div>
-                      <div v-if="!hideQueue" class="queue-display">
-            <draggable
-              v-model="roomState.queue"
-              item-key="id"
-              @end="onReorder"
-              class="queue-container"
-            >
+          <div v-if="!hideQueue" class="queue-display">
+            <draggable v-model="roomState.queue" item-key="id" @end="onReorder" class="queue-container">
               <template #item="{ element }">
                 <div class="queue-item">
                   <img :src="element.thumbnail" width="80" />
@@ -168,34 +145,32 @@
             </div>
             <div class="volume-control">
               <label for="volume-slider">音量:</label>
-              <input 
-                id="volume-slider"
-                v-model.number="volume" 
-                type="range" 
-                min="0" 
-                max="100" 
-                @input="setVolume"
-                class="volume-slider"
-              />
+              <input id="volume-slider" v-model.number="volume" type="range" min="0" max="100" @input="setVolume"
+                class="volume-slider" />
               <span class="volume-value">{{ volume }}</span>
-              </div>
+            </div>
           </div>
           <div class="settings-section">
             <h4>Intro</h4>
             <div v-if="gamemaster" class="gamemaster-buttons">
               <div class="answer-buttons">
-                <button @click="correctAnswer" :disabled="answeringUser.length === 0" class="intro-button gamemaster-correct-button">正解</button>
-                <button @click="incorrectAnswer" :disabled="answeringUser.length === 0" class="intro-button gamemaster-correct-button">不正解</button>
+                <button @click="correctAnswer" :disabled="answeringUser.length === 0"
+                  class="intro-button gamemaster-correct-button">正解</button>
+                <button @click="incorrectAnswer" :disabled="answeringUser.length === 0"
+                  class="intro-button gamemaster-correct-button">不正解</button>
               </div>
               <button @click="skipToNextVideo" class="intro-button gamemaster-incorrect-button">スキップ</button>
             </div>
-            <button v-else @click="answerQuestion" :disabled="!gameStarted || answeringUser && answeringUser.find(m => m.id === userId) || answerCooldown > 0" class="intro-button player-button">早押し{{ answerCooldown > 0 ? ` (${answerCooldown}s)` : '' }}</button>
+            <button v-else @click="answerQuestion"
+              :disabled="!gameStarted || answeringUser && answeringUser.find(m => m.id === userId) || answerCooldown > 0"
+              class="intro-button player-button">早押し{{ answerCooldown > 0 ? ` (${answerCooldown}s)` : '' }}</button>
           </div>
 
           <div class="members-section">
             <h4>Members ({{ roomState.members.length }})</h4>
             <div class="members-list">
-              <div v-for="member in roomState.members" :key="member.id" class="member-item" :class="{ 'has-video': member.video }">
+              <div v-for="member in roomState.members" :key="member.id" class="member-item"
+                :class="{ 'has-video': member.video }">
                 <div class="member-name-wrapper">
                   <span>{{ member.name || 'Anonymous' }}</span>
                   <span class="member-score">{{ member.score || 0 }}</span>
@@ -211,14 +186,10 @@
         <div v-if="activeTab === 'leader' && userId === roomState.leader" class="tab-content">
           <div class="leader-commands">
             <h4>Leader Commands</h4>
-            <button 
-              @click="startGame" 
-              :disabled="!allMembersHaveVideo"
-              class="command-button success-button"
-            >
+            <button @click="startGame" :disabled="!allMembersHaveVideo" class="command-button success-button">
               game start
             </button>
-            <button @click="skipToNextVideo" class="command-button danger-button">
+            <button @click="leaderSkipToNextVideo" class="command-button danger-button">
               Skip to next video
             </button>
           </div>
@@ -286,8 +257,8 @@ let player = null
 let currentVideoStartTime = null
 
 const allMembersHaveVideo = computed(() => {
-  return roomState.value.members.length > 0 && 
-         roomState.value.members.every(member => member.video)
+  return roomState.value.members.length > 0 &&
+    roomState.value.members.every(member => member.video)
 })
 
 const sortedMembers = computed(() => {
@@ -316,10 +287,14 @@ function onReorder() {
 }
 
 function skipToNextVideo() {
-  if(partyState.value === "playing"){
-    socket.emit("video-ended", { roomId })
+  if (partyState.value === "playing") {
+    socket.emit("user-answered-skip", { roomId })
     partyState.value = "waiting"
   }
+}
+
+function leaderSkipToNextVideo() {
+  socket.emit("video-ended", { roomId })
 }
 
 function toggleOpacity() {
@@ -338,9 +313,9 @@ socket.on("sync-opacity", (state) => {
   changeOpacity(state.opacity)
 })
 
-function changeOpacity (opacity) {
+function changeOpacity(opacity) {
   hideVideo.value = opacity === 0
-  if(hideVideo.value && gamemaster.value){
+  if (hideVideo.value && gamemaster.value) {
     opacity = 0.1
   }
   const iframe = player.getIframe()
@@ -357,7 +332,7 @@ function startPlayback(timestamp) {
   const latency = (Date.now() - timestamp) / 1000
   player.seekTo(latency)
   player.playVideo()
-  partyState.value ="willplay"
+  partyState.value = "willplay"
 }
 
 function answerQuestion() {
@@ -365,7 +340,7 @@ function answerQuestion() {
 }
 
 function correctAnswer() {
-  const score = Math.round((100 - (player.getCurrentTime()/player.getDuration()*100)) * 10) / 10
+  const score = Math.round((100 - (player.getCurrentTime() / player.getDuration() * 100)) * 10) / 10
   socket.emit("gamemaster-answer", { roomId, correct: true, score })
 }
 
@@ -397,7 +372,7 @@ socket.on("room-init", (state) => {
   hideVideo.value = state.opacity === "0" || state.opacity === 0
   changeOpacity(state.opacity)
   if (state.currentVideoId) {
-    partyState.value ="catching-up"
+    partyState.value = "catching-up"
     currentVideoStartTime = state.currentVideoStartTime
     player.cueVideoById(state.currentVideoId)
   }
@@ -421,7 +396,7 @@ socket.on("prepare-video", ({ videoId, user }) => {
   roomState.value.gameMaster = user
   gamemaster.value = (user === userId.value)
   changeOpacity(roomState.value.opacity)
-  partyState.value ="preparing"
+  partyState.value = "preparing"
   player.cueVideoById(videoId)
 })
 
@@ -429,29 +404,29 @@ socket.on("start-playback", ({ timestamp }) => {
   startPlayback(timestamp)
 })
 
-socket.on("video-sync-state", ({ states,fixedStartTime }) => {
+socket.on("video-sync-state", ({ states, fixedStartTime }) => {
   roomState.value.currentVideoStartTime = fixedStartTime
   if (states === "pausing") {
-    partyState.value ="willpausing"
+    partyState.value = "willpausing"
     player.pauseVideo()
   } else if (states === "playing") {
     startPlayback(fixedStartTime)
   }
 })
-//TODOサーバー側から送る
-socket.on("user-answered-skip",()=>{
-  correctAnswerUser.value={name:"正解者無し"}
+socket.on("user-answered-skip", () => {
+  correctAnswerUser.value = { name: "正解者無し" }
+  countdown.value = 10
   const countdownInterval = setInterval(() => {
-      countdown.value--
-      if (countdown.value <= 0) {
-        clearInterval(countdownInterval)
-        correctAnswerUser.value = null
-        // 次の問題へ
-        if (socket.id === roomState.value.leader) {
-          socket.emit("next-question", { roomId })
-        }
+    countdown.value--
+    if (countdown.value <= 0) {
+      clearInterval(countdownInterval)
+      correctAnswerUser.value = null
+      // 次の問題へ
+      if (socket.id === roomState.value.leader) {
+        socket.emit("video-ended", { roomId })
       }
-    }, 1000)
+    }
+  }, 1000)
 })
 socket.on("user-answered-result", ({ user, correct }) => {
   if (correct) {
@@ -494,12 +469,12 @@ socket.on("pre-game-start", () => {
     preGameCountdown.value--
     if (preGameCountdown.value <= 0) {
       clearInterval(countdownInterval)
-      if(userId.value===roomState.value.leader) {
+      if (userId.value === roomState.value.leader) {
         socket.emit("start-game", { roomId })
       }
     }
   }, 1000)
-  
+
 })
 
 onMounted(() => {
@@ -531,9 +506,9 @@ onMounted(() => {
             //socket.emit("video-ended", { roomId })
             //partyState.value = "waiting"
           }
-          if (event.data === YT.PlayerState.CUED ) {
+          if (event.data === YT.PlayerState.CUED) {
             if (partyState.value === "catching-up") {
-              partyState.value =roomState.value.currentVideoStatus
+              partyState.value = roomState.value.currentVideoStatus
               if (partyState.value === "playing") {
                 startPlayback(currentVideoStartTime)
               }
@@ -541,28 +516,28 @@ onMounted(() => {
               socket.emit("video-loaded", { roomId })
             }
           }
-          if(event.data === YT.PlayerState.PAUSED){
+          if (event.data === YT.PlayerState.PAUSED) {
             playerPaused.value = true
-            if(partyState.value === "playing"){
-              if (userId.value===roomState.value.leader) {
+            if (partyState.value === "playing") {
+              if (userId.value === roomState.value.leader) {
                 socket.emit("video-state-change", { roomId, states: "pausing" })
               }
               player.playVideo()
             }
-            if(partyState.value === "willpausing"){
-              partyState.value ="pausing"
+            if (partyState.value === "willpausing") {
+              partyState.value = "pausing"
             }
           }
-          if(event.data === YT.PlayerState.PLAYING){
+          if (event.data === YT.PlayerState.PLAYING) {
             playerPaused.value = false
-            if(partyState.value === "pausing"){
-              if (userId.value===roomState.value.leader) {
+            if (partyState.value === "pausing") {
+              if (userId.value === roomState.value.leader) {
                 socket.emit("video-state-change", { roomId, states: "playing" })
               }
               player.pauseVideo()
             }
-            if(partyState.value === "willplay"){
-              partyState.value ="playing"
+            if (partyState.value === "willplay") {
+              partyState.value = "playing"
             }
           }
         }
@@ -583,7 +558,8 @@ onMounted(() => {
 <style scoped>
 .container {
   display: flex;
-  height: min(98vh); /* 縦幅の計算 */ 
+  height: min(98vh);
+  /* 縦幅の計算 */
   overflow: hidden;
   background: #fff;
 }
@@ -868,6 +844,7 @@ onMounted(() => {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -878,6 +855,7 @@ onMounted(() => {
     transform: translateX(-100%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -1347,6 +1325,7 @@ onMounted(() => {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
