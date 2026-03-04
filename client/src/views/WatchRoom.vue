@@ -3,11 +3,27 @@
     <div class="main-content">
       <div class="player-wrapper">
         <div ref="playerContainer" class="player"></div>
-        <!-- 回答中ユーザー表示 -->
-        <div v-if="answeringUser.length > 0" class="answering-overlay">
+        <!-- 出題者または回答ユーザー表示 -->
+        <div v-if="answeringUser.length === 0 && currentGamemaster && gameStarted" class="answering-overlay">
+          <div class="answering-card">
+            <p class="answering-label">出題者📺</p>
+            <p class="answering-name">{{ currentGamemaster.name || 'Anonymous' }}</p>
+          </div>
+        </div>
+        <div v-else-if="answeringUser.length > 0" class="answering-overlay">
           <div class="answering-card">
             <p class="answering-label">回答中...⏰</p>
             <p class="answering-name">{{ answeringUser[0].name || 'Anonymous' }}</p>
+          </div>
+        </div>
+        <!-- ゲーム開始カウントダウン -->
+        <div v-if="preGameCountdown > 0" class="pregame-overlay">
+          <div class="pregame-card">
+            <p class="pregame-label">ゲーム開始まで</p>
+            <p class="pregame-countdown">{{ preGameCountdown }}</p>
+            <div class="countdown-bar">
+              <div class="countdown-progress" :style="{ width: (preGameCountdown / 10 * 100) + '%' }"></div>
+            </div>
           </div>
         </div>
         <!-- 正解者表示 -->
@@ -19,6 +35,20 @@
               <p class="countdown-text">{{ countdown }}秒後に次へ</p>
               <div class="countdown-bar">
                 <div class="countdown-progress" :style="{ width: (countdown / 5 * 100) + '%' }"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- ゲーム終了画面 -->
+        <div v-if="gameEnded" class="game-end-overlay" @click="gameEnded = false">
+          <div class="game-end-card" @click.stop>
+            <button class="game-end-close" @click="gameEnded = false">✕</button>
+            <h2 class="game-end-title">🏆 ゲーム終了!</h2>
+            <div class="final-scores">
+              <div v-for="(member, index) in sortedMembers" :key="member.id" class="score-item">
+                <span class="score-rank">{{ index + 1 }}位</span>
+                <span class="score-name">{{ member.name || 'Anonymous' }}</span>
+                <span class="score-value">{{ member.score || 0 }}点</span>
               </div>
             </div>
           </div>
@@ -126,6 +156,12 @@
           <div class="player-section">
             <h4>Youtube Player</h4>
             <div v-if="gamemaster">
+              <div class="setting-item">
+                <label>
+                  <input type="checkbox" v-model="hideVideo" @change="toggleOpacity" />
+                  Hide video
+                </label>
+              </div>
               <button @click="togglePlayPause" class="control-button">
                 {{ partyState === "pausing" ? '▶ 再生' : '⏸ 一時停止' }}
               </button>
@@ -147,9 +183,9 @@
           <div class="settings-section">
             <h4>Intro</h4>
             <div v-if="gamemaster" class="gamemaster-buttons">
-              <div v-if="answeringUser.length > 0" class="answer-buttons">
-                <button @click="correctAnswer" class="intro-button gamemaster-correct-button">正解</button>
-                <button @click="incorrectAnswer" class="intro-button gamemaster-incorrect-button">不正解</button>
+              <div class="answer-buttons">
+                <button @click="correctAnswer" :disabled="answeringUser.length === 0" class="intro-button gamemaster-correct-button">正解</button>
+                <button @click="incorrectAnswer" :disabled="answeringUser.length === 0" class="intro-button gamemaster-correct-button">不正解</button>
               </div>
               <button @click="skipToNextVideo" class="intro-button gamemaster-incorrect-button">スキップ</button>
             </div>
@@ -243,6 +279,8 @@ const answerCooldown = ref(0)
 const volume = ref(1)
 const playerPaused = ref(false)
 const partyState = ref("waiting") // waiting, preparing, playing, pausing, catching-up
+const gameEnded = ref(false)
+const preGameCountdown = ref(0)
 
 let player = null
 let currentVideoStartTime = null
@@ -250,6 +288,14 @@ let currentVideoStartTime = null
 const allMembersHaveVideo = computed(() => {
   return roomState.value.members.length > 0 && 
          roomState.value.members.every(member => member.video)
+})
+
+const sortedMembers = computed(() => {
+  return [...roomState.value.members].sort((a, b) => (b.score || 0) - (a.score || 0))
+})
+
+const currentGamemaster = computed(() => {
+  return roomState.value.members.find(m => m.id === roomState.value.gameMaster)
 })
 
 function extractVideoId(url) {
@@ -270,8 +316,10 @@ function onReorder() {
 }
 
 function skipToNextVideo() {
-  socket.emit("video-ended", { roomId })
-  partyState.value = "waiting"
+  if(partyState.value === "playing"){
+    socket.emit("video-ended", { roomId })
+    partyState.value = "waiting"
+  }
 }
 
 function toggleOpacity() {
@@ -287,12 +335,14 @@ function toggleHideQueue() {
 }
 
 socket.on("sync-opacity", (state) => {
-  console.log("Updating opacity to:", state.opacity)
-  hideVideo.value = state.opacity === "0" || state.opacity === 0
   changeOpacity(state.opacity)
 })
 
 function changeOpacity (opacity) {
+  hideVideo.value = opacity === 0
+  if(hideVideo.value && gamemaster.value){
+    opacity = 0.1
+  }
   const iframe = player.getIframe()
   iframe.style.opacity = opacity
 }
@@ -324,7 +374,7 @@ function incorrectAnswer() {
 }
 
 function startGame() {
-  socket.emit("start-game", { roomId })
+  socket.emit("pre-game-start", { roomId })
 }
 
 function togglePlayPause() {
@@ -363,13 +413,14 @@ socket.on("user-answered", ({ users }) => {
 })
 
 socket.on("queue-updated", (obj) => {
-  console.log(obj.historyQueue)
   roomState.value.queue = obj.queue
   roomState.value.historyQueue = obj.historyQueue
 })
 
 socket.on("prepare-video", ({ videoId, user }) => {
+  roomState.value.gameMaster = user
   gamemaster.value = (user === userId.value)
+  changeOpacity(roomState.value.opacity)
   partyState.value ="preparing"
   player.cueVideoById(videoId)
 })
@@ -387,7 +438,21 @@ socket.on("video-sync-state", ({ states,fixedStartTime }) => {
     startPlayback(fixedStartTime)
   }
 })
-
+//TODOサーバー側から送る
+socket.on("user-answered-skip",()=>{
+  correctAnswerUser.value={name:"正解者無し"}
+  const countdownInterval = setInterval(() => {
+      countdown.value--
+      if (countdown.value <= 0) {
+        clearInterval(countdownInterval)
+        correctAnswerUser.value = null
+        // 次の問題へ
+        if (socket.id === roomState.value.leader) {
+          socket.emit("next-question", { roomId })
+        }
+      }
+    }, 1000)
+})
 socket.on("user-answered-result", ({ user, correct }) => {
   if (correct) {
     correctAnswerUser.value = user
@@ -418,6 +483,25 @@ socket.on("user-answered-result", ({ user, correct }) => {
   }
 })
 
+socket.on("end-game", () => {
+  gameEnded.value = true
+  partyState.value = "waiting"
+})
+
+socket.on("pre-game-start", () => {
+  preGameCountdown.value = 5
+  const countdownInterval = setInterval(() => {
+    preGameCountdown.value--
+    if (preGameCountdown.value <= 0) {
+      clearInterval(countdownInterval)
+      if(userId.value===roomState.value.leader) {
+        socket.emit("start-game", { roomId })
+      }
+    }
+  }, 1000)
+  
+})
+
 onMounted(() => {
   const tag = document.createElement("script")
   tag.src = "https://www.youtube.com/iframe_api"
@@ -443,7 +527,6 @@ onMounted(() => {
           showNameModal.value = true
         },
         onStateChange: (event) => {
-          console.log("Player state changed:", event.data)
           if (event.data === YT.PlayerState.ENDED) {
             //socket.emit("video-ended", { roomId })
             //partyState.value = "waiting"
@@ -641,6 +724,44 @@ onMounted(() => {
   height: 100%;
   background: #4CAF50;
   transition: width 1s linear;
+}
+
+/* -------- PREGAME OVERLAY -------- */
+
+.pregame-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border: 3px solid #2196F3;
+  border-radius: 16px;
+  padding: 40px 50px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+  animation: fadeIn 0.3s ease-out;
+  text-align: center;
+}
+
+.pregame-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pregame-label {
+  margin: 0;
+  font-size: 18px;
+  color: #2196F3;
+  font-weight: 600;
+}
+
+.pregame-countdown {
+  margin: 0;
+  font-size: 72px;
+  font-weight: 700;
+  color: #2196F3;
+  line-height: 1;
 }
 
 /* -------- TOGGLE -------- */
@@ -1064,6 +1185,13 @@ onMounted(() => {
   background: #45a049;
 }
 
+.gamemaster-correct-button:disabled {
+  background: #ccc;
+  color: #666;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .gamemaster-incorrect-button {
   background: #f44336;
 }
@@ -1223,6 +1351,111 @@ onMounted(() => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* -------- GAME END -------- */
+
+.game-end-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.game-end-card {
+  background: white;
+  border-radius: 16px;
+  padding: 40px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease-out;
+}
+
+.game-end-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 32px;
+  height: 32px;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.game-end-close:hover {
+  background: #e0e0e0;
+}
+
+.game-end-card {
+  position: relative;
+}
+
+.game-end-title {
+  margin: 0 0 30px 0;
+  font-size: 32px;
+  text-align: center;
+  color: #333;
+  font-weight: 700;
+}
+
+.final-scores {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.score-item {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  font-size: 16px;
+  border-left: 4px solid #4CAF50;
+}
+
+.score-item:nth-child(2) {
+  border-left-color: #c0c0c0;
+}
+
+.score-item:nth-child(3) {
+  border-left-color: #cd7f32;
+}
+
+.score-rank {
+  font-weight: 700;
+  font-size: 14px;
+  color: #ff9800;
+  min-width: 50px;
+}
+
+.score-name {
+  flex: 1;
+  font-weight: 600;
+  color: #333;
+  margin-left: 15px;
+}
+
+.score-value {
+  font-weight: 700;
+  font-size: 18px;
+  color: #4CAF50;
+  text-align: right;
+  min-width: 60px;
 }
 
 @media (max-width: 768px) {
