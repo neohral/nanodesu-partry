@@ -5,8 +5,8 @@ const { Server } = require("socket.io")
 const app = express()
 const server = http.createServer(app)
 const quiz = require("./intro/quiz")
-const { videoStateChange,startPlayback } = require("./common/videoSync")
-const { mode,videoRegister,prepareVideo } = require("./mode/intro")
+const { videoSyncRegister } = require("./common/videoSync")
+const { initroom,mode,videoRegister,prepareVideo } = require("./mode/intro")
 const io = new Server(server, {
   cors: { origin: "*" }
 })
@@ -14,34 +14,19 @@ const io = new Server(server, {
 const roomState = {}
 
 io.on("connection", (socket) => {
-  quiz(io,socket,roomState)
+  videoSyncRegister(io,socket,roomState)
   videoRegister(io,socket,roomState)
+  quiz(io,socket,roomState)
 
   socket.on("join-room", ({ roomId, name }) => {
     socket.join(roomId)
 
     if (!roomState[roomId]) {
-      roomState[roomId] = {
-        id: roomId,
-        members: [],
-        leader: socket.id,
-        currentVideoId: null,
-        currentVideoUser: null,
-        currentVideoStartTime: null,
-        currentVideoStatus: "waiting",
-        currentVideoChangeTime: null,
-        queue: [],
-        historyQueue: [],
-        loadingUsers: [],
-        expectedUsers: [],
-        timeoutId: "",
-        opacity: 0,
-        hideQueue: true,
-        gameStatus: "waiting",
-        gameMaster: null,
-        gameAnswerQueue: [],
-      }
+      roomState[roomId] = structuredClone(initroom)
+      roomState[roomId].leader = socket.id
+      roomState[roomId].id = roomId
     }
+    
     if (roomState[roomId].gameStatus === "prepared") {
       roomState[roomId].gameStatus = "waiting"
     }
@@ -59,22 +44,6 @@ io.on("connection", (socket) => {
   socket.on("video-ended", ({ roomId }) => {
     if (socket.id != roomState[roomId].leader || socket.id != roomState[roomId].gameMaster) return
     prepareVideo(io,roomId, roomState)
-  })
-
-  socket.on("video-loaded", ({ roomId }) => {
-    const room = roomState[roomId]
-    if (!room.loadingUsers.includes(socket.id)) {
-      room.loadingUsers.push(socket.id)
-    }
-
-    if (room.loadingUsers.length === room.expectedUsers.length) {
-      clearTimeout(roomState[roomId].timeoutId)
-      startPlayback(roomId)
-    }
-  })
-
-  socket.on("video-state-change", ({ roomId, states }) => {
-    videoStateChange(io, roomId, roomState, states)
   })
 
   socket.on("toggle-opacity", ({ roomId }) => {
