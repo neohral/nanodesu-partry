@@ -2,11 +2,11 @@
 const express = require("express")
 const http = require("http")
 const { Server } = require("socket.io")
+require("dotenv").config()
 const app = express()
 const server = http.createServer(app)
-const quiz = require("./intro/quiz")
 const { videoSyncRegister } = require("./common/videoSync")
-const { initroom,mode,videoRegister,prepareVideo } = require("./mode/intro")
+const { initroom,mode,videoRegister,prepareVideo } = require("./mode/party")
 const io = new Server(server, {
   cors: { origin: "*" }
 })
@@ -16,7 +16,6 @@ const roomState = {}
 io.on("connection", (socket) => {
   videoSyncRegister(io,socket,roomState)
   videoRegister(io,socket,roomState)
-  quiz(io,socket,roomState)
 
   socket.on("join-room", ({ roomId, name }) => {
     socket.join(roomId)
@@ -76,7 +75,7 @@ io.on("connection", (socket) => {
   });
 })
 
-server.listen(3000, () => {
-  console.log("Server running on http://localhost:3000")
+server.listen(process.env.PORT_PARTY || 3003, () => {
+  console.log(`Server running on http://localhost:${process.env.PORT_PARTY || 3003}`)
   console.log(mode)
 })

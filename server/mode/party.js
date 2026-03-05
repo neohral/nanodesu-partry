@@ -1,7 +1,21 @@
 const crypto = require("crypto")
-const {fetchVideoInfo} = require("../common/youtube")
+const { fetchVideoInfo } = require("../common/youtube")
 
 const mode = "party"
+const initroom = {
+    members: [],
+    currentVideoId: null,
+    currentVideoStartTime: null,
+    currentVideoStatus: "waiting",
+    currentVideoChangeTime: null,
+    queue: [],
+    historyQueue: [],
+    loadingUsers: [],
+    expectedUsers: [],
+    timeoutId: "",
+    opacity: 1,
+    hideQueue: false
+}
 function videoRegister(io, socket, roomState) {
     socket.on("add-video", async ({ roomId, videoId }) => {
         const room = roomState[roomId]
@@ -21,33 +35,38 @@ function videoRegister(io, socket, roomState) {
         io.to(roomId).emit("queue-updated", { queue: room.queue, historyQueue: room.historyQueue })
 
         if (!room.currentVideoId) {
-            prepareVideo(io,roomId,roomState)
+            prepareVideo(io, roomId, roomState)
         }
+    })
+    socket.on("video-ended", ({ roomId }) => {
+        if (socket.id != roomState[roomId].leader) return
+        prepareVideo(io, roomId, roomState)
     })
 }
 
 function prepareVideo(io, roomId, roomState) {
-  const room = roomState[roomId]
-  const next = room.queue.shift()
-  if (!next) {
-    room.currentVideoId = null
-    room.currentVideoStatus = "waiting"
+    const room = roomState[roomId]
+    const next = room.queue.shift()
+    if (!next) {
+        room.currentVideoId = null
+        room.currentVideoStatus = "waiting"
+        io.to(roomId).emit("queue-updated", { queue: room.queue, historyQueue: room.historyQueue })
+        return
+    }
+    room.historyQueue.push(next)
+    room.currentVideoId = next.videoId
+    const clients = io.sockets.adapter.rooms.get(roomId) || new Set()
+    room.expectedUsers = Array.from(clients)
+    room.loadingUsers = []
+    room.currentVideoPauseStacks = 0
+    io.to(roomId).emit("prepare-video", { videoId: next.videoId })
     io.to(roomId).emit("queue-updated", { queue: room.queue, historyQueue: room.historyQueue })
-    return
-  }
-  room.historyQueue.push(next)
-  room.currentVideoId = next.videoId
-  const clients = io.sockets.adapter.rooms.get(roomId) || new Set()
-  room.expectedUsers = Array.from(clients)
-  room.loadingUsers = []
-  room.currentVideoPauseStacks = 0
-  io.to(roomId).emit("prepare-video", { videoId: next.videoId })
-  io.to(roomId).emit("queue-updated", { queue: room.queue, historyQueue: room.historyQueue })
-  
-  room.timeoutId = setTimeout(() => startPlayback(roomId), 5000)
+
+    room.timeoutId = setTimeout(() => startPlayback(roomId), 5000)
 }
 
 module.exports = {
+    initroom,
     mode,
     videoRegister,
     prepareVideo

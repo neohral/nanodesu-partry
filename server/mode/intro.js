@@ -1,33 +1,55 @@
 const crypto = require("crypto")
-const {fetchVideoInfo} = require("../common/youtube")
+const { fetchVideoInfo } = require("../common/youtube")
 
 const mode = "intro"
-function videoRegister(io, socket, roomState){
-      socket.on("add-video", async ({ roomId, videoId }) => {
-        const room = roomState[roomId]
-        if (room.gameStatus !== "waiting") return
-    
-        const info = await fetchVideoInfo(videoId)
-        if (!info) return
-    
-        const member = room.members.find(m => m.id === socket.id)
-        if (!member) return
-    
-        const video = {
-          id: crypto.randomUUID(),
-          user: socket.id,
-          userName: member.name,
-          ...info
-        }
-    
-        member.video = video;
-        const loadedCnt = room.members.filter((member) => member.video)
-    
-        if (loadedCnt === roomState[roomId].members.length) {
-          roomState[roomId].gameStatus = "prepared"
-        }
-        io.to(roomId).emit("sync-stats", roomState[roomId])
-      })
+const initroom = {
+  members: [],
+  currentVideoId: null,
+  currentVideoUser: null,
+  currentVideoStartTime: null,
+  currentVideoStatus: "waiting",
+  currentVideoChangeTime: null,
+  queue: [],
+  historyQueue: [],
+  loadingUsers: [],
+  expectedUsers: [],
+  timeoutId: "",
+  opacity: 0,
+  hideQueue: true,
+  gameStatus: "waiting",
+  gameMaster: null,
+  gameAnswerQueue: [],
+}
+function videoRegister(io, socket, roomState) {
+  socket.on("add-video", async ({ roomId, videoId }) => {
+    const room = roomState[roomId]
+    if (room.gameStatus !== "waiting") return
+
+    const info = await fetchVideoInfo(videoId)
+    if (!info) return
+
+    const member = room.members.find(m => m.id === socket.id)
+    if (!member) return
+
+    const video = {
+      id: crypto.randomUUID(),
+      user: socket.id,
+      userName: member.name,
+      ...info
+    }
+
+    member.video = video;
+    const loadedCnt = room.members.filter((member) => member.video)
+
+    if (loadedCnt === roomState[roomId].members.length) {
+      roomState[roomId].gameStatus = "prepared"
+    }
+    io.to(roomId).emit("sync-stats", roomState[roomId])
+  })
+  socket.on("video-ended", ({ roomId }) => {
+    if (socket.id != roomState[roomId].leader) return
+    prepareVideo(io, roomId, roomState)
+  })
 }
 
 function prepareVideo(io, roomId, roomState) {
@@ -59,6 +81,7 @@ function prepareVideo(io, roomId, roomState) {
 }
 
 module.exports = {
+  initroom,
   mode,
   videoRegister,
   prepareVideo

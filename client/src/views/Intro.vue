@@ -73,7 +73,7 @@
     <!-- Sidebar -->
     <div class="sidebar" :class="{ open: sidebarOpen }">
       <div class="sidebar-header">
-        <h3>{{ roomId }} watch party<span v-if="userId === roomState.leader">👑</span></h3>
+        <h3>{{ roomId }} intro party<span v-if="userId === roomState.leader">👑</span></h3>
       </div>
 
       <!-- Tabs -->
@@ -223,7 +223,7 @@ import draggable from "vuedraggable"
 
 const route = useRoute()
 const roomId = route.params.roomId
-const socket = io("http://localhost:3000")
+const socket = io(import.meta.env.VITE_SOCKET_INTRO_URL)
 
 const roomState = ref({
   members: [],
@@ -310,11 +310,11 @@ function toggleHideQueue() {
 }
 
 socket.on("sync-opacity", (state) => {
+  hideVideo.value = state.opacity === 0
   changeOpacity(state.opacity)
 })
 
 function changeOpacity(opacity) {
-  hideVideo.value = opacity === 0
   if (hideVideo.value && gamemaster.value) {
     opacity = 0.1
   }
