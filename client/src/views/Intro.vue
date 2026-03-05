@@ -220,6 +220,7 @@ import { ref, computed, onMounted, watch } from "vue"
 import { useRoute } from "vue-router"
 import { io } from "socket.io-client"
 import draggable from "vuedraggable"
+import { useRoom } from "../composables/room"
 
 const route = useRoute()
 const roomId = route.params.roomId
@@ -232,7 +233,6 @@ const roomState = ref({
   queue: [],
   historyQueue: [],
 })
-const videoUrl = ref("")
 const playerContainer = ref(null)
 const sidebarOpen = ref(true)
 const userId = ref("")
@@ -252,6 +252,11 @@ const playerPaused = ref(false)
 const partyState = ref("waiting") // waiting, preparing, playing, pausing, catching-up
 const gameEnded = ref(false)
 const preGameCountdown = ref(0)
+const {
+  videoUrl,
+  onReorder,
+  addVideo
+} = useRoom(socket, roomId, roomState)
 
 let player = null
 let currentVideoStartTime = null
@@ -268,23 +273,6 @@ const sortedMembers = computed(() => {
 const currentGamemaster = computed(() => {
   return roomState.value.members.find(m => m.id === roomState.value.gameMaster)
 })
-
-function extractVideoId(url) {
-  const reg = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/
-  const match = url.match(reg)
-  return match ? match[1] : null
-}
-
-function addVideo() {
-  const id = extractVideoId(videoUrl.value)
-  if (!id) return
-  socket.emit("add-video", { roomId, videoId: id })
-  videoUrl.value = ""
-}
-
-function onReorder() {
-  socket.emit("reorder-queue", { roomId, queue: roomState.value.queue })
-}
 
 function skipToNextVideo() {
   if (partyState.value === "playing") {

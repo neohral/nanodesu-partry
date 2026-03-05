@@ -104,15 +104,6 @@
 
         <!-- Settings Tab -->
         <div v-if="activeTab === 'settings'" class="tab-content">
-          <div class="settings-section">
-            <h4>Settings</h4>
-            <!-- <div class="setting-item">
-              <label>
-                <input type="checkbox" v-model="enableChatSync" />
-                Enable chat sync
-              </label>
-            </div> -->
-          </div>
 
           <div class="members-section">
             <h4>Members ({{ roomState.members.length }})</h4>
@@ -160,6 +151,7 @@ import { ref, onMounted, watch } from "vue"
 import { useRoute } from "vue-router"
 import { io } from "socket.io-client"
 import draggable from "vuedraggable"
+import { useRoom } from "../composables/room"
 
 const route = useRoute()
 const roomId = route.params.roomId
@@ -172,7 +164,6 @@ const roomState = ref({
   queue: [],
   historyQueue: [],
 })
-const videoUrl = ref("")
 const playerContainer = ref(null)
 const sidebarOpen = ref(true)
 const userId = ref("")
@@ -181,26 +172,14 @@ const hideQueue = ref(false)
 const hideVideo = ref(false)
 const userName = ref("")
 const showNameModal = ref(false)
+const {
+  videoUrl,
+  onReorder,
+  addVideo,
+} = useRoom(socket, roomId, roomState)
 let player = null
 let partyState = "waiting" // waiting, preparing, playing, pausing, catching-up
 let currentVideoStartTime = null
-
-function extractVideoId(url) {
-  const reg = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/
-  const match = url.match(reg)
-  return match ? match[1] : null
-}
-
-function addVideo() {
-  const id = extractVideoId(videoUrl.value)
-  if (!id) return
-  socket.emit("add-video", { roomId, videoId: id })
-  videoUrl.value = ""
-}
-
-function onReorder() {
-  socket.emit("reorder-queue", { roomId, queue: roomState.value.queue })
-}
 
 function skipToNextVideo() {
   socket.emit("video-ended", { roomId })
