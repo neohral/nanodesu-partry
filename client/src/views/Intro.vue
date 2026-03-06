@@ -474,6 +474,7 @@ socket.on("prepare-video", ({ videoId, user, opacity }) => {
   roomState.value.gameMaster = user;
   gamemaster.value = user === userId.value;
   roomState.value.opacity = opacity
+  hideVideo.value = opacity === 0;
   changeOpacity(roomState.value.opacity);
   partyState.value = "preparing";
   player.cueVideoById(videoId);
