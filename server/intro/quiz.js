@@ -43,10 +43,13 @@ module.exports = function (io, socket, roomState) {
             correctuser = room.members.find(m => m.id === answeredUser.id)
             if (correctuser) correctuser.score += score
             roomState[roomId].opacity = 1
-            io.to(roomId).emit("sync-opacity", { opacity: roomState[roomId].opacity })
             room.gameAnswerQueue = []
-            io.to(roomId).emit("user-answered-result", { user: answeredUser, correct })
+            room.gameStatus = "corrected"
             videoStateChange(io, roomId, roomState, "playing")
+            io.to(roomId).emit("user-answered-result", { user: answeredUser, correct })
+            io.to(roomId).emit("sync-opacity", { opacity: roomState[roomId].opacity })
+            io.to(roomId).emit("change-game-status", roomState[roomId].gameStatus)
+            io.to(roomId).emit("user-answered", { users: room.gameAnswerQueue })
         } else {
             io.to(roomId).emit("user-answered", { users: room.gameAnswerQueue })
             if (room.gameAnswerQueue.length === 0) {
