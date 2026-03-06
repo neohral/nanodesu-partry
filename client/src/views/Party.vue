@@ -155,7 +155,9 @@ import { useRoom } from "../composables/room"
 
 const route = useRoute()
 const roomId = route.params.roomId
-const socket = io(import.meta.env.VITE_SOCKET_PARTY_URL)
+const socket = io(import.meta.env.VITE_SOCKET_PARTY_URL,{
+  path: "/socket/nanodesu/intro"
+})
 
 const roomState = ref({
   members: [],
@@ -170,39 +172,25 @@ const userId = ref("")
 const activeTab = ref("queue")
 const hideQueue = ref(false)
 const hideVideo = ref(false)
-const userName = ref("")
-const showNameModal = ref(false)
+const playerRef = ref(null)
+let player = null
 const {
+  userName,
+  showNameModal,
   videoUrl,
+  partyState,
+  joinRoom,
   onReorder,
   addVideo,
-} = useRoom(socket, roomId, roomState)
-let player = null
-let partyState = "waiting" // waiting, preparing, playing, pausing, catching-up
+  startPlayback,
+  skipToNextVideo,
+  eventRegister,
+  toggleOpacity,
+  toggleHideQueue
+} = useRoom(socket, roomId, roomState,playerRef)
+
 let currentVideoStartTime = null
-
-function skipToNextVideo() {
-  socket.emit("video-ended", { roomId })
-  partyState = "waiting"
-}
-
-function toggleOpacity() {
-  socket.emit("toggle-opacity", { roomId })
-}
-
-socket.on("sync-hide-queue", (state) => {
-  hideQueue.value = state.hideQueue
-})
-
-function toggleHideQueue() {
-  socket.emit("toggle-hide-queue", { roomId })
-}
-
-socket.on("sync-opacity", (state) => {
-  console.log("Updating opacity to:", state.opacity)
-  hideVideo.value = state.opacity === "0" || state.opacity === 0
-  changeOpacity(state.opacity)
-})
+eventRegister(io, socket, roomState)
 
 function changeOpacity (opacity) {
   const iframe = player.getIframe()
@@ -211,26 +199,13 @@ function changeOpacity (opacity) {
   iframe.style.pointerEvents = opacity === "0" || opacity === 0 ? "none" : "auto"
 }
 
-function joinRoom() {
-  const name = userName.value.trim() || "Anonymous"
-  socket.emit("join-room", { roomId, name })
-  showNameModal.value = false
-}
-
-function startPlayback(timestamp) {
-  const latency = (Date.now() - timestamp) / 1000
-  player.seekTo(latency)
-  player.playVideo()
-  partyState = "willplay"
-}
-
 socket.on("room-init", (state) => {
   userId.value = socket.id
   hideQueue.value = state.hideQueue
   hideVideo.value = state.opacity === "0" || state.opacity === 0
   changeOpacity(state.opacity)
   if (state.currentVideoId) {
-    partyState = "catching-up"
+    partyState.value = "catching-up"
     currentVideoStartTime = state.currentVideoStartTime
     player.cueVideoById(state.currentVideoId)
   }
@@ -240,14 +215,8 @@ socket.on("sync-stats", (state) => {
   roomState.value = state
 })
 
-socket.on("queue-updated", (obj) => {
-  console.log(obj.historyQueue)
-  roomState.value.queue = obj.queue
-  roomState.value.historyQueue = obj.historyQueue
-})
-
 socket.on("prepare-video", ({ videoId }) => {
-  partyState = "preparing"
+  partyState.value = "preparing"
   player.cueVideoById(videoId)
 })
 
@@ -258,7 +227,7 @@ socket.on("start-playback", ({ timestamp }) => {
 socket.on("video-sync-state", ({ states,fixedStartTime }) => {
   roomState.value.currentVideoStartTime = fixedStartTime
   if (states === "pausing") {
-    partyState = "willpausing"
+    partyState.value = "willpausing"
     player.pauseVideo()
   } else if (states === "playing") {
     startPlayback(fixedStartTime)
@@ -279,6 +248,7 @@ onMounted(() => {
       },
       events: {
         onReady: () => {
+          playerRef.value = player
           const iframe = player.getIframe()
           iframe.style.width = "100%"
           iframe.style.height = "100%"
@@ -291,38 +261,38 @@ onMounted(() => {
           console.log("Player state changed:", event.data)
           if (event.data === YT.PlayerState.ENDED) {
             socket.emit("video-ended", { roomId })
-            partyState = "waiting"
+            partyState.value = "waiting"
           }
           if (event.data === YT.PlayerState.CUED ) {
-            if (partyState === "catching-up") {
-              partyState = roomState.value.currentVideoStatus
-              if (partyState === "playing") {
+            if (partyState.value === "catching-up") {
+              partyState.value = roomState.value.currentVideoStatus
+              if (partyState.value === "playing") {
                 startPlayback(currentVideoStartTime)
               }
-            } else if (partyState === "preparing") {
+            } else if (partyState.value === "preparing") {
               socket.emit("video-loaded", { roomId })
             }
           }
           if(event.data === YT.PlayerState.PAUSED){
-            if(partyState === "playing"){
+            if(partyState.value === "playing"){
               if (userId.value===roomState.value.leader) {
                 socket.emit("video-state-change", { roomId, states: "pausing" })
               }
               player.playVideo()
             }
-            if(partyState === "willpausing"){
-              partyState = "pausing"
+            if(partyState.value === "willpausing"){
+              partyState.value = "pausing"
             }
           }
           if(event.data === YT.PlayerState.PLAYING){
-            if(partyState === "pausing"){
+            if(partyState.value === "pausing"){
               if (userId.value===roomState.value.leader) {
                 socket.emit("video-state-change", { roomId, states: "playing" })
               }
               player.pauseVideo()
             }
-            if(partyState === "willplay"){
-              partyState = "playing"
+            if(partyState.value === "willplay"){
+              partyState.value = "playing"
             }
           }
         }

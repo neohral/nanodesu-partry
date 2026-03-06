@@ -159,7 +159,7 @@
                 <button @click="incorrectAnswer" :disabled="answeringUser.length === 0"
                   class="intro-button gamemaster-correct-button">不正解</button>
               </div>
-              <button @click="skipToNextVideo" class="intro-button gamemaster-incorrect-button">スキップ</button>
+              <button @click="quizSkipToNextVideo" class="intro-button gamemaster-incorrect-button">スキップ</button>
             </div>
             <button v-else @click="answerQuestion"
               :disabled="!gameStarted || answeringUser && answeringUser.find(m => m.id === userId) || answerCooldown > 0"
@@ -189,7 +189,7 @@
             <button @click="startGame" :disabled="!allMembersHaveVideo" class="command-button success-button">
               game start
             </button>
-            <button @click="leaderSkipToNextVideo" class="command-button danger-button">
+            <button @click="skipToNextVideo" class="command-button danger-button">
               Skip to next video
             </button>
           </div>
@@ -224,7 +224,9 @@ import { useRoom } from "../composables/room"
 
 const route = useRoute()
 const roomId = route.params.roomId
-const socket = io(import.meta.env.VITE_SOCKET_INTRO_URL)
+const socket = io(import.meta.env.VITE_SOCKET_INTRO_URL,{
+  path: "/socket/nanodesu/party"
+})
 
 const roomState = ref({
   members: [],
@@ -239,8 +241,6 @@ const userId = ref("")
 const activeTab = ref("queue")
 const hideQueue = ref(false)
 const hideVideo = ref(false)
-const userName = ref("")
-const showNameModal = ref(false)
 const gamemaster = ref(false)
 const gameStarted = ref(false)
 const answeringUser = ref([])
@@ -249,17 +249,26 @@ const countdown = ref(0)
 const answerCooldown = ref(0)
 const volume = ref(1)
 const playerPaused = ref(false)
-const partyState = ref("waiting") // waiting, preparing, playing, pausing, catching-up
 const gameEnded = ref(false)
 const preGameCountdown = ref(0)
-const {
-  videoUrl,
-  onReorder,
-  addVideo
-} = useRoom(socket, roomId, roomState)
 
+const playerRef = ref(null)
 let player = null
 let currentVideoStartTime = null
+const {
+  userName,
+  showNameModal,
+  videoUrl,
+  partyState,
+  joinRoom,
+  onReorder,
+  addVideo,
+  startPlayback,
+  skipToNextVideo,
+  eventRegister,
+  toggleOpacity,
+  toggleHideQueue
+} = useRoom(socket, roomId, roomState,playerRef)
 
 const allMembersHaveVideo = computed(() => {
   return roomState.value.members.length > 0 &&
@@ -274,33 +283,14 @@ const currentGamemaster = computed(() => {
   return roomState.value.members.find(m => m.id === roomState.value.gameMaster)
 })
 
-function skipToNextVideo() {
+eventRegister(io, socket, roomState)
+
+function quizSkipToNextVideo() {
   if (partyState.value === "playing") {
     socket.emit("user-answered-skip", { roomId })
     partyState.value = "waiting"
   }
 }
-
-function leaderSkipToNextVideo() {
-  socket.emit("video-ended", { roomId })
-}
-
-function toggleOpacity() {
-  socket.emit("toggle-opacity", { roomId })
-}
-
-socket.on("sync-hide-queue", (state) => {
-  hideQueue.value = state.hideQueue
-})
-
-function toggleHideQueue() {
-  socket.emit("toggle-hide-queue", { roomId })
-}
-
-socket.on("sync-opacity", (state) => {
-  hideVideo.value = state.opacity === 0
-  changeOpacity(state.opacity)
-})
 
 function changeOpacity(opacity) {
   if (hideVideo.value && gamemaster.value) {
@@ -308,19 +298,6 @@ function changeOpacity(opacity) {
   }
   const iframe = player.getIframe()
   iframe.style.opacity = opacity
-}
-
-function joinRoom() {
-  const name = userName.value.trim() || "Anonymous"
-  socket.emit("join-room", { roomId, name })
-  showNameModal.value = false
-}
-
-function startPlayback(timestamp) {
-  const latency = (Date.now() - timestamp) / 1000
-  player.seekTo(latency)
-  player.playVideo()
-  partyState.value = "willplay"
 }
 
 function answerQuestion() {
@@ -373,11 +350,6 @@ socket.on("sync-stats", (state) => {
 
 socket.on("user-answered", ({ users }) => {
   answeringUser.value = users
-})
-
-socket.on("queue-updated", (obj) => {
-  roomState.value.queue = obj.queue
-  roomState.value.historyQueue = obj.historyQueue
 })
 
 socket.on("prepare-video", ({ videoId, user }) => {
@@ -479,6 +451,7 @@ onMounted(() => {
       },
       events: {
         onReady: () => {
+          playerRef.value = player
           const iframe = player.getIframe()
           iframe.style.width = "100%"
           iframe.style.height = "100%"
@@ -490,10 +463,6 @@ onMounted(() => {
           showNameModal.value = true
         },
         onStateChange: (event) => {
-          if (event.data === YT.PlayerState.ENDED) {
-            //socket.emit("video-ended", { roomId })
-            //partyState.value = "waiting"
-          }
           if (event.data === YT.PlayerState.CUED) {
             if (partyState.value === "catching-up") {
               partyState.value = roomState.value.currentVideoStatus
