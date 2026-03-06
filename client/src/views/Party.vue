@@ -173,7 +173,7 @@ const activeTab = ref("queue")
 const hideQueue = ref(false)
 const hideVideo = ref(false)
 const playerRef = ref(null)
-const diff=ref(0)
+const dateTimeDiff=ref(0)
 
 let player = null
 const {
@@ -202,14 +202,15 @@ function changeOpacity (opacity) {
 }
 
 socket.on("room-init", (state,serverTime) => {
-  diff.value = Date.now() - serverTime
+  console.log("lag",dateTimeDiff.value)
+  dateTimeDiff.value = Date.now() - serverTime
   userId.value = socket.id
   hideQueue.value = state.hideQueue
   hideVideo.value = state.opacity === "0" || state.opacity === 0
   changeOpacity(state.opacity)
   if (state.currentVideoId) {
     partyState.value = "catching-up"
-    currentVideoStartTime = state.currentVideoStartTime + diff.value
+    currentVideoStartTime = state.currentVideoStartTime + dateTimeDiff.value
     player.cueVideoById(state.currentVideoId)
   }
 })
@@ -228,12 +229,12 @@ socket.on("start-playback", ({ timestamp }) => {
 })
 
 socket.on("video-sync-state", ({ states,fixedStartTime }) => {
-  roomState.value.currentVideoStartTime = fixedStartTime + diff.value
+  currentVideoStartTime = fixedStartTime + dateTimeDiff.value
   if (states === "pausing") {
     partyState.value = "willpausing"
     player.pauseVideo()
   } else if (states === "playing") {
-    startPlayback(fixedStartTime)
+    startPlayback(currentVideoStartTime)
   }
 })
 
@@ -261,7 +262,6 @@ onMounted(() => {
           showNameModal.value = true
         },
         onStateChange: (event) => {
-          console.log("Player state changed:", event.data)
           if (event.data === YT.PlayerState.ENDED) {
             socket.emit("video-ended", { roomId })
             partyState.value = "waiting"

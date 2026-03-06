@@ -31,6 +31,7 @@ export function useRoom(socket, roomId, roomStateRef, playerRef) {
 
     function startPlayback(timestamp) {
         const latency = (Date.now() - timestamp) / 1000
+        console.log("st",Date.now() - timestamp)
         const player = playerRef.value;
         player.seekTo(latency)
         player.playVideo()
