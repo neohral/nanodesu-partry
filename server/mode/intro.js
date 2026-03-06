@@ -78,8 +78,7 @@ function prepareVideo(io, roomId, roomState) {
   room.currentVideoPauseStacks = 0
   room.opacity = 0
   room.gameStatus = "playing"
-  io.to(roomId).emit("sync-opacity", { opacity: room.opacity })
-  io.to(roomId).emit("prepare-video", { videoId: next.videoId, user: next.user })
+  io.to(roomId).emit("prepare-video", { videoId: next.videoId, user: next.user, opacity: room.opacity })
   io.to(roomId).emit("queue-updated", { queue: room.queue, historyQueue: room.historyQueue })
   io.to(roomId).emit("change-game-status", roomState[roomId].gameStatus)
   room.timeoutId = setTimeout(() => startPlayback(roomId), 5000)

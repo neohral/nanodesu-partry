@@ -470,9 +470,10 @@ socket.on("user-answered", ({ users }) => {
   answeringUser.value = users;
 });
 
-socket.on("prepare-video", ({ videoId, user }) => {
+socket.on("prepare-video", ({ videoId, user, opacity }) => {
   roomState.value.gameMaster = user;
   gamemaster.value = user === userId.value;
+  roomState.value.opacity = opacity
   changeOpacity(roomState.value.opacity);
   partyState.value = "preparing";
   player.cueVideoById(videoId);
