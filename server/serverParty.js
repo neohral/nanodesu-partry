@@ -30,7 +30,7 @@ io.on("connection", (socket) => {
       roomState[roomId].gameStatus = "waiting"
     }
     roomState[roomId].members.push({ id: socket.id, name: name, videoId: null, score: 0 })
-    socket.emit("room-init", roomState[roomId])
+    socket.emit("room-init", roomState[roomId], Date.now())
     io.to(roomId).emit("sync-stats", roomState[roomId])
   })
 

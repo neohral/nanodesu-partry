@@ -173,6 +173,8 @@ const activeTab = ref("queue")
 const hideQueue = ref(false)
 const hideVideo = ref(false)
 const playerRef = ref(null)
+const diff=ref(0)
+
 let player = null
 const {
   userName,
@@ -199,14 +201,15 @@ function changeOpacity (opacity) {
   iframe.style.pointerEvents = opacity === "0" || opacity === 0 ? "none" : "auto"
 }
 
-socket.on("room-init", (state) => {
+socket.on("room-init", (state,serverTime) => {
+  diff.value = Date.now() - serverTime
   userId.value = socket.id
   hideQueue.value = state.hideQueue
   hideVideo.value = state.opacity === "0" || state.opacity === 0
   changeOpacity(state.opacity)
   if (state.currentVideoId) {
     partyState.value = "catching-up"
-    currentVideoStartTime = state.currentVideoStartTime
+    currentVideoStartTime = state.currentVideoStartTime + diff.value
     player.cueVideoById(state.currentVideoId)
   }
 })
@@ -225,7 +228,7 @@ socket.on("start-playback", ({ timestamp }) => {
 })
 
 socket.on("video-sync-state", ({ states,fixedStartTime }) => {
-  roomState.value.currentVideoStartTime = fixedStartTime
+  roomState.value.currentVideoStartTime = fixedStartTime + diff.value
   if (states === "pausing") {
     partyState.value = "willpausing"
     player.pauseVideo()

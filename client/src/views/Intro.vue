@@ -251,6 +251,7 @@ const volume = ref(1)
 const playerPaused = ref(false)
 const gameEnded = ref(false)
 const preGameCountdown = ref(0)
+const diff=ref(0)
 
 const playerRef = ref(null)
 let player = null
@@ -331,14 +332,15 @@ function setVolume() {
   }
 }
 
-socket.on("room-init", (state) => {
+socket.on("room-init", (state, serverTime) => {
+  diff.value = Date.now() - serverTime
   userId.value = socket.id
   hideQueue.value = state.hideQueue
   hideVideo.value = state.opacity === "0" || state.opacity === 0
   changeOpacity(state.opacity)
   if (state.currentVideoId) {
     partyState.value = "catching-up"
-    currentVideoStartTime = state.currentVideoStartTime
+    currentVideoStartTime = state.currentVideoStartTime + diff.value
     player.cueVideoById(state.currentVideoId)
   }
 })
@@ -365,7 +367,7 @@ socket.on("start-playback", ({ timestamp }) => {
 })
 
 socket.on("video-sync-state", ({ states, fixedStartTime }) => {
-  roomState.value.currentVideoStartTime = fixedStartTime
+  roomState.value.currentVideoStartTime = fixedStartTime + diff.value
   if (states === "pausing") {
     partyState.value = "willpausing"
     player.pauseVideo()
