@@ -4,16 +4,23 @@
       <div class="player-wrapper">
         <div ref="playerContainer" class="player"></div>
         <!-- 出題者または回答ユーザー表示 -->
-        <div v-if="answeringUser.length === 0 && currentGamemaster && gameStarted" class="answering-overlay">
+        <div
+          v-if="answeringUser.length === 0 && currentGamemaster && gameStarted"
+          class="answering-overlay"
+        >
           <div class="answering-card">
             <p class="answering-label">出題者📺</p>
-            <p class="answering-name">{{ currentGamemaster.name || 'Anonymous' }}</p>
+            <p class="answering-name">
+              {{ currentGamemaster.name || "Anonymous" }}
+            </p>
           </div>
         </div>
         <div v-else-if="answeringUser.length > 0" class="answering-overlay">
           <div class="answering-card">
             <p class="answering-label">回答中...⏰</p>
-            <p class="answering-name">{{ answeringUser[0].name || 'Anonymous' }}</p>
+            <p class="answering-name">
+              {{ answeringUser[0].name || "Anonymous" }}
+            </p>
           </div>
         </div>
         <!-- ゲーム開始カウントダウン -->
@@ -22,7 +29,10 @@
             <p class="pregame-label">ゲーム開始まで</p>
             <p class="pregame-countdown">{{ preGameCountdown }}</p>
             <div class="countdown-bar">
-              <div class="countdown-progress" :style="{ width: (preGameCountdown / 10 * 100) + '%' }"></div>
+              <div
+                class="countdown-progress"
+                :style="{ width: (preGameCountdown / 10) * 100 + '%' }"
+              ></div>
             </div>
           </div>
         </div>
@@ -30,24 +40,37 @@
         <div v-if="correctAnswerUser" class="correct-answer-overlay">
           <div class="correct-answer-card">
             <p class="correct-label">🎉 正解!</p>
-            <p class="correct-name">{{ correctAnswerUser.name || 'Anonymous' }}</p>
+            <p class="correct-name">
+              {{ correctAnswerUser.name || "Anonymous" }}
+            </p>
             <div class="countdown">
               <p class="countdown-text">{{ countdown }}秒後に次へ</p>
               <div class="countdown-bar">
-                <div class="countdown-progress" :style="{ width: (countdown / 5 * 100) + '%' }"></div>
+                <div
+                  class="countdown-progress"
+                  :style="{ width: (countdown / 5) * 100 + '%' }"
+                ></div>
               </div>
             </div>
           </div>
         </div>
         <!-- ゲーム終了画面 -->
-        <div v-if="gameEnded" class="game-end-overlay" @click="gameEnded = false">
+        <div
+          v-if="gameEnded"
+          class="game-end-overlay"
+          @click="gameEnded = false"
+        >
           <div class="game-end-card" @click.stop>
             <button class="game-end-close" @click="gameEnded = false">✕</button>
             <h2 class="game-end-title">🏆 ゲーム終了!</h2>
             <div class="final-scores">
-              <div v-for="(member, index) in sortedMembers" :key="member.id" class="score-item">
+              <div
+                v-for="(member, index) in sortedMembers"
+                :key="member.id"
+                class="score-item"
+              >
                 <span class="score-rank">{{ index + 1 }}位</span>
-                <span class="score-name">{{ member.name || 'Anonymous' }}</span>
+                <span class="score-name">{{ member.name || "Anonymous" }}</span>
                 <span class="score-value">{{ member.score || 0 }}点</span>
               </div>
             </div>
@@ -58,14 +81,20 @@
 
     <!-- Toggle Button -->
     <button class="toggle-button" @click="sidebarOpen = !sidebarOpen">
-      {{ sidebarOpen ? '✕' : '☰' }}
+      {{ sidebarOpen ? "✕" : "☰" }}
     </button>
 
     <!-- Name Input Modal -->
     <div v-if="showNameModal" class="modal-overlay">
       <div class="modal-dialog">
         <h3>あなたの名前を入力してください</h3>
-        <input v-model="userName" type="text" placeholder="名前を入力" class="name-input" @keyup.enter="joinRoom" />
+        <input
+          v-model="userName"
+          type="text"
+          placeholder="名前を入力"
+          class="name-input"
+          @keyup.enter="joinRoom"
+        />
         <button @click="joinRoom" class="modal-button">参加</button>
       </div>
     </div>
@@ -73,19 +102,35 @@
     <!-- Sidebar -->
     <div class="sidebar" :class="{ open: sidebarOpen }">
       <div class="sidebar-header">
-        <h3>{{ roomId }} intro party<span v-if="userId === roomState.leader">👑</span></h3>
+        <h3>
+          {{ roomId }} intro party<span v-if="userId === roomState.leader"
+            >👑</span
+          >
+        </h3>
       </div>
 
       <!-- Tabs -->
       <div class="sidebar-tabs">
-        <button @click="activeTab = 'queue'" :class="{ active: activeTab === 'queue' }" class="tab-button">
+        <button
+          @click="activeTab = 'queue'"
+          :class="{ active: activeTab === 'queue' }"
+          class="tab-button"
+        >
           Queue
         </button>
-        <button @click="activeTab = 'settings'" :class="{ active: activeTab === 'settings' }" class="tab-button">
+        <button
+          @click="activeTab = 'settings'"
+          :class="{ active: activeTab === 'settings' }"
+          class="tab-button"
+        >
           Settings
         </button>
-        <button v-if="userId === roomState.leader" @click="activeTab = 'leader'"
-          :class="{ active: activeTab === 'leader' }" class="tab-button leader-tab">
+        <button
+          v-if="userId === roomState.leader"
+          @click="activeTab = 'leader'"
+          :class="{ active: activeTab === 'leader' }"
+          class="tab-button leader-tab"
+        >
           Commands
         </button>
       </div>
@@ -94,11 +139,20 @@
         <!-- Queue Tab -->
         <div v-if="activeTab === 'queue'" class="tab-content">
           <div class="input-section">
-            <input v-model="videoUrl" placeholder="YouTube URL" class="url-input" />
+            <input
+              v-model="videoUrl"
+              placeholder="YouTube URL"
+              class="url-input"
+            />
             <button @click="addVideo" class="add-button">Add</button>
           </div>
           <div v-if="!hideQueue" class="queue-display">
-            <draggable v-model="roomState.queue" item-key="id" @end="onReorder" class="queue-container">
+            <draggable
+              v-model="roomState.queue"
+              item-key="id"
+              @end="onReorder"
+              class="queue-container"
+            >
               <template #item="{ element }">
                 <div class="queue-item">
                   <img :src="element.thumbnail" width="80" />
@@ -110,10 +164,17 @@
               </template>
             </draggable>
 
-            <div v-if="roomState.historyQueue.length > 0" class="history-section">
+            <div
+              v-if="roomState.historyQueue.length > 0"
+              class="history-section"
+            >
               <h4>再生済み</h4>
               <div class="history-queue-container">
-                <div v-for="element in roomState.historyQueue" :key="`history-${element.id}`" class="queue-item">
+                <div
+                  v-for="element in roomState.historyQueue"
+                  :key="`history-${element.id}`"
+                  class="queue-item"
+                >
                   <img :src="element.thumbnail" width="80" />
                   <div class="queue-item-info">
                     <div class="queue-item-title">{{ element.title }}</div>
@@ -135,18 +196,29 @@
             <div v-if="gamemaster">
               <div class="setting-item">
                 <label>
-                  <input type="checkbox" v-model="hideVideo" @change="toggleOpacity" />
+                  <input
+                    type="checkbox"
+                    v-model="hideVideo"
+                    @change="toggleOpacity"
+                  />
                   Hide video
                 </label>
               </div>
               <button @click="togglePlayPause" class="control-button">
-                {{ partyState === "pausing" ? '▶ 再生' : '⏸ 一時停止' }}
+                {{ partyState === "pausing" ? "▶ 再生" : "⏸ 一時停止" }}
               </button>
             </div>
             <div class="volume-control">
               <label for="volume-slider">音量:</label>
-              <input id="volume-slider" v-model.number="volume" type="range" min="0" max="100" @input="setVolume"
-                class="volume-slider" />
+              <input
+                id="volume-slider"
+                v-model.number="volume"
+                type="range"
+                min="0"
+                max="100"
+                @input="setVolume"
+                class="volume-slider"
+              />
               <span class="volume-value">{{ volume }}</span>
             </div>
           </div>
@@ -154,42 +226,82 @@
             <h4>Intro</h4>
             <div v-if="gamemaster" class="gamemaster-buttons">
               <div class="answer-buttons">
-                <button @click="correctAnswer" :disabled="answeringUser.length === 0"
-                  class="intro-button gamemaster-correct-button">正解</button>
-                <button @click="incorrectAnswer" :disabled="answeringUser.length === 0"
-                  class="intro-button gamemaster-correct-button">不正解</button>
+                <button
+                  @click="correctAnswer"
+                  :disabled="answeringUser.length === 0"
+                  class="intro-button gamemaster-correct-button"
+                >
+                  正解
+                </button>
+                <button
+                  @click="incorrectAnswer"
+                  :disabled="answeringUser.length === 0"
+                  class="intro-button gamemaster-correct-button"
+                >
+                  不正解
+                </button>
               </div>
-              <button @click="quizSkipToNextVideo" class="intro-button gamemaster-incorrect-button">スキップ</button>
+              <button
+                @click="quizSkipToNextVideo"
+                class="intro-button gamemaster-incorrect-button"
+              >
+                スキップ
+              </button>
             </div>
-            <button v-else @click="answerQuestion"
-              :disabled="!gameStarted || answeringUser && answeringUser.find(m => m.id === userId) || answerCooldown > 0"
-              class="intro-button player-button">早押し{{ answerCooldown > 0 ? ` (${answerCooldown}s)` : '' }}</button>
+            <button
+              v-else
+              @click="answerQuestion"
+              :disabled="
+                !gameStarted ||
+                (answeringUser && answeringUser.find((m) => m.id === userId)) ||
+                answerCooldown > 0
+              "
+              class="intro-button player-button"
+            >
+              早押し{{ answerCooldown > 0 ? ` (${answerCooldown}s)` : "" }}
+            </button>
           </div>
 
           <div class="members-section">
             <h4>Members ({{ roomState.members.length }})</h4>
             <div class="members-list">
-              <div v-for="member in roomState.members" :key="member.id" class="member-item"
-                :class="{ 'has-video': member.video }">
+              <div
+                v-for="member in roomState.members"
+                :key="member.id"
+                class="member-item"
+                :class="{ 'has-video': member.video }"
+              >
                 <div class="member-name-wrapper">
-                  <span>{{ member.name || 'Anonymous' }}</span>
+                  <span>{{ member.name || "Anonymous" }}</span>
                   <span class="member-score">{{ member.score || 0 }}</span>
                   <!-- <span v-if="member.video" class="video-indicator"></span> -->
                 </div>
-                <span v-if="member.id === roomState.leader" class="leader-badge">Leader</span>
+                <span v-if="member.id === roomState.leader" class="leader-badge"
+                  >Leader</span
+                >
               </div>
             </div>
           </div>
         </div>
 
         <!-- Leader Commands Tab -->
-        <div v-if="activeTab === 'leader' && userId === roomState.leader" class="tab-content">
+        <div
+          v-if="activeTab === 'leader' && userId === roomState.leader"
+          class="tab-content"
+        >
           <div class="leader-commands">
             <h4>Leader Commands</h4>
-            <button @click="startGame" :disabled="!allMembersHaveVideo" class="command-button success-button">
+            <button
+              @click="startGame"
+              :disabled="!allMembersHaveVideo"
+              class="command-button success-button"
+            >
               game start
             </button>
-            <button @click="skipToNextVideo" class="command-button danger-button">
+            <button
+              @click="skipToNextVideo"
+              class="command-button danger-button"
+            >
               Skip to next video
             </button>
           </div>
@@ -198,13 +310,21 @@
             <h4>Leader Settings</h4>
             <div class="setting-item">
               <label>
-                <input type="checkbox" v-model="hideQueue" @change="toggleHideQueue" />
+                <input
+                  type="checkbox"
+                  v-model="hideQueue"
+                  @change="toggleHideQueue"
+                />
                 Hide queue
               </label>
             </div>
             <div class="setting-item">
               <label>
-                <input type="checkbox" v-model="hideVideo" @change="toggleOpacity" />
+                <input
+                  type="checkbox"
+                  v-model="hideVideo"
+                  @change="toggleOpacity"
+                />
                 Hide video
               </label>
             </div>
@@ -216,17 +336,17 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue"
-import { useRoute } from "vue-router"
-import { io } from "socket.io-client"
-import draggable from "vuedraggable"
-import { useRoom } from "../composables/room"
+import { ref, computed, onMounted, watch } from "vue";
+import { useRoute } from "vue-router";
+import { io } from "socket.io-client";
+import draggable from "vuedraggable";
+import { useRoom } from "../composables/room";
 
-const route = useRoute()
-const roomId = route.params.roomId
-const socket = io(import.meta.env.VITE_SOCKET_INTRO_URL,{
-  path: "/socket/nanodesu/intro/"
-})
+const route = useRoute();
+const roomId = route.params.roomId;
+const socket = io(import.meta.env.VITE_SOCKET_INTRO_URL, {
+  path: "/socket/nanodesu/intro/",
+});
 
 const roomState = ref({
   members: [],
@@ -234,34 +354,33 @@ const roomState = ref({
   currentVideoId: null,
   queue: [],
   historyQueue: [],
-})
-const playerContainer = ref(null)
-const sidebarOpen = ref(true)
-const userId = ref("")
-const activeTab = ref("queue")
-const hideQueue = ref(false)
-const hideVideo = ref(false)
-const gamemaster = ref(false)
-const gameStarted = ref(false)
-const answeringUser = ref([])
-const correctAnswerUser = ref(null)
-const countdown = ref(0)
-const answerCooldown = ref(0)
-const volume = ref(1)
-const playerPaused = ref(false)
-const gameEnded = ref(false)
-const preGameCountdown = ref(0)
-const dateTimeDiff=ref(0)
+});
+const playerContainer = ref(null);
+const sidebarOpen = ref(true);
+const activeTab = ref("queue");
+const gamemaster = ref(false);
+const gameStarted = ref(false);
+const answeringUser = ref([]);
+const correctAnswerUser = ref(null);
+const countdown = ref(0);
+const answerCooldown = ref(0);
+const volume = ref(1);
+const playerPaused = ref(false);
+const gameEnded = ref(false);
+const preGameCountdown = ref(0);
 
-const playerRef = ref(null)
-let player = null
+const playerRef = ref(null);
+let player = null;
 const {
+  userId,
+  currentVideoStartTime,
+  currentVideoPauseTime,
   userName,
+  hideQueue,
+  hideVideo,
   showNameModal,
   videoUrl,
   partyState,
-  currentVideoStartTime,
-  currentVideoPauseTime,
   joinRoom,
   onReorder,
   addVideo,
@@ -269,239 +388,237 @@ const {
   skipToNextVideo,
   eventRegister,
   toggleOpacity,
-  toggleHideQueue
-} = useRoom(socket, roomId, roomState,playerRef)
+  toggleHideQueue,
+} = useRoom(socket, roomId, roomState, playerRef);
 
 const allMembersHaveVideo = computed(() => {
-  return roomState.value.members.length > 0 &&
-    roomState.value.members.every(member => member.video)
-})
+  return (
+    roomState.value.members.length > 0 &&
+    roomState.value.members.every((member) => member.video)
+  );
+});
 
 const sortedMembers = computed(() => {
-  return [...roomState.value.members].sort((a, b) => (b.score || 0) - (a.score || 0))
-})
+  return [...roomState.value.members].sort(
+    (a, b) => (b.score || 0) - (a.score || 0),
+  );
+});
 
 const currentGamemaster = computed(() => {
-  return roomState.value.members.find(m => m.id === roomState.value.gameMaster)
-})
+  return roomState.value.members.find(
+    (m) => m.id === roomState.value.gameMaster,
+  );
+});
 
-eventRegister(io, socket, roomState)
+eventRegister(io, socket, roomState);
 
 function quizSkipToNextVideo() {
   if (partyState.value === "playing") {
-    socket.emit("user-answered-skip", { roomId })
-    partyState.value = "waiting"
+    socket.emit("user-answered-skip", { roomId });
+    partyState.value = "waiting";
   }
 }
 
 function changeOpacity(opacity) {
   if (hideVideo.value && gamemaster.value) {
-    opacity = 0.1
+    opacity = 0.1;
   }
-  const iframe = player.getIframe()
-  iframe.style.opacity = opacity
+  const iframe = player.getIframe();
+  iframe.style.opacity = opacity;
 }
 
 function answerQuestion() {
-  socket.emit("answer-question", { roomId, userId: userId.value })
+  socket.emit("answer-question", { roomId, userId: userId.value });
 }
 
 function correctAnswer() {
-  const score = Math.round((100 - (player.getCurrentTime() / player.getDuration() * 100)) * 10) / 10
-  socket.emit("gamemaster-answer", { roomId, correct: true, score })
+  const score =
+    Math.round(
+      (100 - (player.getCurrentTime() / player.getDuration()) * 100) * 10,
+    ) / 10;
+  socket.emit("gamemaster-answer", { roomId, correct: true, score });
 }
 
 function incorrectAnswer() {
-  socket.emit("gamemaster-answer", { roomId, correct: false, score: 0 })
+  socket.emit("gamemaster-answer", { roomId, correct: false, score: 0 });
 }
 
 function startGame() {
-  socket.emit("pre-game-start", { roomId })
+  socket.emit("pre-game-start", { roomId });
 }
 
 function togglePlayPause() {
   if (partyState.value === "pausing") {
-    socket.emit("video-state-change", { roomId, states: "playing" })
+    socket.emit("video-state-change", { roomId, states: "playing" });
   } else {
-    socket.emit("video-state-change", { roomId, states: "pausing" })
+    socket.emit("video-state-change", { roomId, states: "pausing" });
   }
 }
 
 function setVolume() {
   if (player) {
-    player.setVolume(volume.value)
+    player.setVolume(volume.value);
   }
 }
 
-socket.on("room-init", (state, serverTime) => {
-  dateTimeDiff.value = Date.now() - serverTime
-  console.log("lag",dateTimeDiff.value)
-  userId.value = socket.id
-  hideQueue.value = state.hideQueue
-  hideVideo.value = state.opacity === "0" || state.opacity === 0
-  changeOpacity(state.opacity)
-  if (state.currentVideoId) {
-    partyState.value = "catching-up"
-    currentVideoStartTime.value = state.currentVideoStartTime + dateTimeDiff
-    currentVideoPauseTime.value = state.currentVideoTotalPauseTime
-    player.cueVideoById(state.currentVideoId)
-  }
-})
-
-socket.on("sync-stats", (state) => {
-  gameStarted.value = state.gameStatus === "playing" ? true : false
-  roomState.value = state
-})
+socket.on("change-game-status", (gameStatus) => {
+  gameStarted.value = gameStatus === "playing" ? true : false;
+});
 
 socket.on("user-answered", ({ users }) => {
-  answeringUser.value = users
-})
+  answeringUser.value = users;
+});
 
 socket.on("prepare-video", ({ videoId, user }) => {
-  roomState.value.gameMaster = user
-  gamemaster.value = (user === userId.value)
-  changeOpacity(roomState.value.opacity)
-  partyState.value = "preparing"
-  player.cueVideoById(videoId)
-})
+  roomState.value.gameMaster = user;
+  gamemaster.value = user === userId.value;
+  changeOpacity(roomState.value.opacity);
+  partyState.value = "preparing";
+  player.cueVideoById(videoId);
+});
 
 socket.on("user-answered-skip", () => {
-  correctAnswerUser.value = { name: "正解者無し" }
-  countdown.value = 10
+  correctAnswerUser.value = { name: "正解者無し" };
+  countdown.value = 10;
   const countdownInterval = setInterval(() => {
-    countdown.value--
+    countdown.value--;
     if (countdown.value <= 0) {
-      clearInterval(countdownInterval)
-      correctAnswerUser.value = null
+      clearInterval(countdownInterval);
+      correctAnswerUser.value = null;
       // 次の問題へ
       if (socket.id === roomState.value.leader) {
-        socket.emit("video-ended", { roomId })
+        socket.emit("video-ended", { roomId });
       }
     }
-  }, 1000)
-})
+  }, 1000);
+});
 socket.on("user-answered-result", ({ user, correct }) => {
   if (correct) {
-    correctAnswerUser.value = user
-    answeringUser.value = []
-    countdown.value = 10
+    correctAnswerUser.value = user;
+    answeringUser.value = [];
+    countdown.value = 10;
     const countdownInterval = setInterval(() => {
-      countdown.value--
+      countdown.value--;
       if (countdown.value <= 0) {
-        clearInterval(countdownInterval)
-        correctAnswerUser.value = null
+        clearInterval(countdownInterval);
+        correctAnswerUser.value = null;
         // 次の問題へ
         if (socket.id === roomState.value.leader) {
-          socket.emit("next-question", { roomId })
+          socket.emit("next-question", { roomId });
         }
       }
-    }, 1000)
+    }, 1000);
   } else {
     // 不正解の場合は3秒間早押しボタンを押せないようにする
     if (user.id === userId.value) {
-      answerCooldown.value = 3
+      answerCooldown.value = 3;
       const cooldownInterval = setInterval(() => {
-        answerCooldown.value--
+        answerCooldown.value--;
         if (answerCooldown.value <= 0) {
-          clearInterval(cooldownInterval)
+          clearInterval(cooldownInterval);
         }
-      }, 1000)
+      }, 1000);
     }
   }
-})
+});
 
 socket.on("end-game", () => {
-  gameEnded.value = true
-  partyState.value = "waiting"
-})
+  gameEnded.value = true;
+  partyState.value = "waiting";
+});
 
 socket.on("pre-game-start", () => {
-  preGameCountdown.value = 5
+  preGameCountdown.value = 5;
   const countdownInterval = setInterval(() => {
-    preGameCountdown.value--
+    preGameCountdown.value--;
     if (preGameCountdown.value <= 0) {
-      clearInterval(countdownInterval)
+      clearInterval(countdownInterval);
       if (userId.value === roomState.value.leader) {
-        socket.emit("start-game", { roomId })
+        socket.emit("start-game", { roomId });
       }
     }
-  }, 1000)
-
-})
+  }, 1000);
+});
 
 onMounted(() => {
-  const tag = document.createElement("script")
-  tag.src = "https://www.youtube.com/iframe_api"
-  document.body.appendChild(tag)
+  const tag = document.createElement("script");
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.body.appendChild(tag);
 
   window.onYouTubeIframeAPIReady = () => {
     player = new YT.Player(playerContainer.value, {
       videoId: "",
       playerVars: {
         rel: 0,
-        modestbranding: 1
+        modestbranding: 1,
       },
       events: {
         onReady: () => {
-          playerRef.value = player
-          const iframe = player.getIframe()
-          iframe.style.width = "100%"
-          iframe.style.height = "100%"
-          iframe.style.position = "absolute"
-          iframe.style.top = "0"
-          iframe.style.left = "0"
-          iframe.style.pointerEvents = "none"
-          volume.value = player.getVolume()
-          showNameModal.value = true
+          playerRef.value = player;
+          const iframe = player.getIframe();
+          iframe.style.width = "100%";
+          iframe.style.height = "100%";
+          iframe.style.position = "absolute";
+          iframe.style.top = "0";
+          iframe.style.left = "0";
+          iframe.style.pointerEvents = "none";
+          volume.value = player.getVolume();
+          showNameModal.value = true;
         },
         onStateChange: (event) => {
           if (event.data === YT.PlayerState.CUED) {
             if (partyState.value === "catching-up") {
-              partyState.value = roomState.value.currentVideoStatus
+              partyState.value = roomState.value.currentVideoStatus;
               if (partyState.value === "playing") {
-                startPlayback(currentVideoStartTime)
+                startPlayback(currentVideoStartTime);
               }
             } else if (partyState.value === "preparing") {
-              socket.emit("video-loaded", { roomId })
+              socket.emit("video-loaded", { roomId });
             }
           }
           if (event.data === YT.PlayerState.PAUSED) {
-            playerPaused.value = true
+            playerPaused.value = true;
             if (partyState.value === "playing") {
               if (userId.value === roomState.value.leader) {
-                socket.emit("video-state-change", { roomId, states: "pausing" })
+                socket.emit("video-state-change", {
+                  roomId,
+                  states: "pausing",
+                });
               }
-              startPlayback(currentVideoStartTime+currentVideoPauseTime)
+              startPlayback(currentVideoStartTime + currentVideoPauseTime);
             }
             if (partyState.value === "willpausing") {
-              partyState.value = "pausing"
+              partyState.value = "pausing";
             }
           }
           if (event.data === YT.PlayerState.PLAYING) {
-            playerPaused.value = false
+            playerPaused.value = false;
             if (partyState.value === "pausing") {
               if (userId.value === roomState.value.leader) {
-                socket.emit("video-state-change", { roomId, states: "playing" })
+                socket.emit("video-state-change", {
+                  roomId,
+                  states: "playing",
+                });
               }
-              player.pauseVideo()
+              player.pauseVideo();
             }
             if (partyState.value === "willplay") {
-              partyState.value = "playing"
+              partyState.value = "playing";
             }
           }
-        }
-      }
-    })
-  }
+        },
+      },
+    });
+  };
 
   window.addEventListener("resize", () => {
     if (player) {
-      const iframe = player.getIframe()
-      iframe.style.width = "100%"
-      iframe.style.height = "100%"
+      const iframe = player.getIframe();
+      iframe.style.width = "100%";
+      iframe.style.height = "100%";
     }
-  })
-})
+  });
+});
 </script>
 
 <style scoped>
@@ -561,7 +678,7 @@ onMounted(() => {
   top: 20px;
   left: 20px;
   background: white;
-  border: 2px solid #2196F3;
+  border: 2px solid #2196f3;
   border-radius: 12px;
   padding: 16px 24px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -579,7 +696,7 @@ onMounted(() => {
 .answering-label {
   margin: 0 0 8px 0;
   font-size: 12px;
-  color: #2196F3;
+  color: #2196f3;
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -598,7 +715,7 @@ onMounted(() => {
   top: 20px;
   left: 20px;
   background: white;
-  border: 2px solid #4CAF50;
+  border: 2px solid #4caf50;
   border-radius: 12px;
   padding: 16px 24px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -616,7 +733,7 @@ onMounted(() => {
 .correct-label {
   margin: 0 0 8px 0;
   font-size: 14px;
-  color: #4CAF50;
+  color: #4caf50;
   font-weight: 700;
 }
 
@@ -647,7 +764,7 @@ onMounted(() => {
 
 .countdown-progress {
   height: 100%;
-  background: #4CAF50;
+  background: #4caf50;
   transition: width 1s linear;
 }
 
@@ -659,7 +776,7 @@ onMounted(() => {
   left: 50%;
   transform: translate(-50%, -50%);
   background: white;
-  border: 3px solid #2196F3;
+  border: 3px solid #2196f3;
   border-radius: 16px;
   padding: 40px 50px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
@@ -677,7 +794,7 @@ onMounted(() => {
 .pregame-label {
   margin: 0;
   font-size: 18px;
-  color: #2196F3;
+  color: #2196f3;
   font-weight: 600;
 }
 
@@ -685,7 +802,7 @@ onMounted(() => {
   margin: 0;
   font-size: 72px;
   font-weight: 700;
-  color: #2196F3;
+  color: #2196f3;
   line-height: 1;
 }
 
@@ -764,8 +881,8 @@ onMounted(() => {
 }
 
 .tab-button.active {
-  color: #4CAF50;
-  border-bottom-color: #4CAF50;
+  color: #4caf50;
+  border-bottom-color: #4caf50;
 }
 
 .tab-button.leader-tab {
@@ -870,7 +987,7 @@ onMounted(() => {
 }
 
 .member-item.has-video {
-  border-left: 4px solid #4CAF50;
+  border-left: 4px solid #4caf50;
 }
 
 .member-name-wrapper {
@@ -890,7 +1007,7 @@ onMounted(() => {
   display: inline-block;
   width: 8px;
   height: 8px;
-  background: #4CAF50;
+  background: #4caf50;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -924,7 +1041,7 @@ onMounted(() => {
 }
 
 .success-button {
-  background: #4CAF50;
+  background: #4caf50;
   color: white;
 }
 
@@ -1001,7 +1118,7 @@ onMounted(() => {
 
 .add-button {
   padding: 10px 15px;
-  background: #4CAF50;
+  background: #4caf50;
   color: white;
   border: none;
   border-radius: 4px;
@@ -1031,7 +1148,7 @@ onMounted(() => {
 .control-button {
   width: 100%;
   padding: 10px;
-  background: #2196F3;
+  background: #2196f3;
   color: white;
   border: none;
   border-radius: 4px;
@@ -1105,7 +1222,7 @@ onMounted(() => {
 }
 
 .gamemaster-correct-button {
-  background: #4CAF50;
+  background: #4caf50;
 }
 
 .gamemaster-correct-button:hover {
@@ -1128,7 +1245,7 @@ onMounted(() => {
 }
 
 .player-button {
-  background: #2196F3;
+  background: #2196f3;
   width: 100%;
 }
 
@@ -1248,14 +1365,14 @@ onMounted(() => {
 
 .name-input:focus {
   outline: none;
-  border-color: #4CAF50;
+  border-color: #4caf50;
   box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
 }
 
 .modal-button {
   width: 100%;
   padding: 12px;
-  background: #4CAF50;
+  background: #4caf50;
   color: white;
   border: none;
   border-radius: 4px;
@@ -1353,7 +1470,7 @@ onMounted(() => {
   background: #f9f9f9;
   border-radius: 8px;
   font-size: 16px;
-  border-left: 4px solid #4CAF50;
+  border-left: 4px solid #4caf50;
 }
 
 .score-item:nth-child(2) {
@@ -1381,7 +1498,7 @@ onMounted(() => {
 .score-value {
   font-weight: 700;
   font-size: 18px;
-  color: #4CAF50;
+  color: #4caf50;
   text-align: right;
   min-width: 60px;
 }

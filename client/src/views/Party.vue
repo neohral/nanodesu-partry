@@ -8,17 +8,17 @@
 
     <!-- Toggle Button -->
     <button class="toggle-button" @click="sidebarOpen = !sidebarOpen">
-      {{ sidebarOpen ? '✕' : '☰' }}
+      {{ sidebarOpen ? "✕" : "☰" }}
     </button>
 
     <!-- Name Input Modal -->
     <div v-if="showNameModal" class="modal-overlay">
       <div class="modal-dialog">
         <h3>あなたの名前を入力してください</h3>
-        <input 
-          v-model="userName" 
-          type="text" 
-          placeholder="名前を入力" 
+        <input
+          v-model="userName"
+          type="text"
+          placeholder="名前を入力"
           class="name-input"
           @keyup.enter="joinRoom"
         />
@@ -29,28 +29,32 @@
     <!-- Sidebar -->
     <div class="sidebar" :class="{ open: sidebarOpen }">
       <div class="sidebar-header">
-        <h3>{{ roomId }} watch party<span v-if="userId===roomState.leader">👑</span></h3>
+        <h3>
+          {{ roomId }} watch party<span v-if="userId === roomState.leader"
+            >👑</span
+          >
+        </h3>
       </div>
 
       <!-- Tabs -->
       <div class="sidebar-tabs">
-        <button 
-          @click="activeTab = 'queue'" 
+        <button
+          @click="activeTab = 'queue'"
           :class="{ active: activeTab === 'queue' }"
           class="tab-button"
         >
           Queue
         </button>
-        <button 
-          @click="activeTab = 'settings'" 
+        <button
+          @click="activeTab = 'settings'"
           :class="{ active: activeTab === 'settings' }"
           class="tab-button"
         >
           Settings
         </button>
-        <button 
+        <button
           v-if="userId === roomState.leader"
-          @click="activeTab = 'leader'" 
+          @click="activeTab = 'leader'"
           :class="{ active: activeTab === 'leader' }"
           class="tab-button leader-tab"
         >
@@ -62,7 +66,11 @@
         <!-- Queue Tab -->
         <div v-if="activeTab === 'queue'" class="tab-content">
           <div class="input-section">
-            <input v-model="videoUrl" placeholder="YouTube URL" class="url-input" />
+            <input
+              v-model="videoUrl"
+              placeholder="YouTube URL"
+              class="url-input"
+            />
             <button @click="addVideo" class="add-button">Add</button>
           </div>
 
@@ -84,10 +92,17 @@
               </template>
             </draggable>
 
-            <div v-if="roomState.historyQueue.length > 0" class="history-section">
+            <div
+              v-if="roomState.historyQueue.length > 0"
+              class="history-section"
+            >
               <h4>再生済み</h4>
               <div class="history-queue-container">
-                <div v-for="element in roomState.historyQueue" :key="`history-${element.id}`" class="queue-item">
+                <div
+                  v-for="element in roomState.historyQueue"
+                  :key="`history-${element.id}`"
+                  class="queue-item"
+                >
                   <img :src="element.thumbnail" width="80" />
                   <div class="queue-item-info">
                     <div class="queue-item-title">{{ element.title }}</div>
@@ -104,23 +119,34 @@
 
         <!-- Settings Tab -->
         <div v-if="activeTab === 'settings'" class="tab-content">
-
           <div class="members-section">
             <h4>Members ({{ roomState.members.length }})</h4>
             <div class="members-list">
-              <div v-for="member in roomState.members" :key="member.id" class="member-item">
-                <span>{{ member.name || 'Anonymous' }}</span>
-                <span v-if="member.id === roomState.leader" class="leader-badge">Leader</span>
+              <div
+                v-for="member in roomState.members"
+                :key="member.id"
+                class="member-item"
+              >
+                <span>{{ member.name || "Anonymous" }}</span>
+                <span v-if="member.id === roomState.leader" class="leader-badge"
+                  >Leader</span
+                >
               </div>
             </div>
           </div>
         </div>
 
         <!-- Leader Commands Tab -->
-        <div v-if="activeTab === 'leader' && userId === roomState.leader" class="tab-content">
+        <div
+          v-if="activeTab === 'leader' && userId === roomState.leader"
+          class="tab-content"
+        >
           <div class="leader-commands">
             <h4>Leader Commands</h4>
-            <button @click="skipToNextVideo" class="command-button danger-button">
+            <button
+              @click="skipToNextVideo"
+              class="command-button danger-button"
+            >
               Skip to next video
             </button>
           </div>
@@ -129,13 +155,21 @@
             <h4>Leader Settings</h4>
             <div class="setting-item">
               <label>
-                <input type="checkbox" v-model="hideQueue" @change="toggleHideQueue" />
+                <input
+                  type="checkbox"
+                  v-model="hideQueue"
+                  @change="toggleHideQueue"
+                />
                 Hide queue
               </label>
             </div>
             <div class="setting-item">
               <label>
-                <input type="checkbox" v-model="hideVideo" @change="toggleOpacity" />
+                <input
+                  type="checkbox"
+                  v-model="hideVideo"
+                  @change="toggleOpacity"
+                />
                 Hide video
               </label>
             </div>
@@ -147,17 +181,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue"
-import { useRoute } from "vue-router"
-import { io } from "socket.io-client"
-import draggable from "vuedraggable"
-import { useRoom } from "../composables/room"
+import { ref, onMounted, watch } from "vue";
+import { useRoute } from "vue-router";
+import { io } from "socket.io-client";
+import draggable from "vuedraggable";
+import { useRoom } from "../composables/room";
 
-const route = useRoute()
-const roomId = route.params.roomId
-const socket = io(import.meta.env.VITE_SOCKET_PARTY_URL,{
-  path: "/socket/nanodesu/party/"
-})
+const route = useRoute();
+const roomId = route.params.roomId;
+const socket = io(import.meta.env.VITE_SOCKET_PARTY_URL, {
+  path: "/socket/nanodesu/party/",
+});
 
 const roomState = ref({
   members: [],
@@ -165,20 +199,20 @@ const roomState = ref({
   currentVideoId: null,
   queue: [],
   historyQueue: [],
-})
-const playerContainer = ref(null)
-const sidebarOpen = ref(true)
-const userId = ref("")
-const activeTab = ref("queue")
-const hideQueue = ref(false)
-const hideVideo = ref(false)
-const playerRef = ref(null)
+});
+const playerContainer = ref(null);
+const sidebarOpen = ref(true);
+const activeTab = ref("queue");
+const playerRef = ref(null);
 
-let player = null
+let player = null;
 const {
+  userId,
   currentVideoStartTime,
   currentVideoPauseTime,
   userName,
+  hideQueue,
+  hideVideo,
   showNameModal,
   videoUrl,
   partyState,
@@ -189,123 +223,119 @@ const {
   skipToNextVideo,
   eventRegister,
   toggleOpacity,
-  toggleHideQueue
-} = useRoom(socket, roomId, roomState,playerRef)
-eventRegister(io, socket, roomState)
+  toggleHideQueue,
+} = useRoom(socket, roomId, roomState, playerRef);
+eventRegister(io, socket, roomState);
 
-function changeOpacity (opacity) {
-  const iframe = player.getIframe()
-  iframe.style.opacity = opacity
+function changeOpacity(opacity) {
+  const iframe = player.getIframe();
+  iframe.style.opacity = opacity;
   // opacityが0の時にクリック不可にする
-  iframe.style.pointerEvents = opacity === "0" || opacity === 0 ? "none" : "auto"
+  iframe.style.pointerEvents =
+    opacity === "0" || opacity === 0 ? "none" : "auto";
 }
 
-socket.on("room-init", (state,serverTime) => {
-  const dateTimeDiff = Date.now() - serverTime
-  console.log("lag",dateTimeDiff)
-  userId.value = socket.id
-  hideQueue.value = state.hideQueue
-  hideVideo.value = state.opacity === "0" || state.opacity === 0
-  changeOpacity(state.opacity)
-  if (state.currentVideoId) {
-    partyState.value = "catching-up"
-    currentVideoStartTime.value = state.currentVideoStartTime + dateTimeDiff
-    currentVideoPauseTime.value = state.currentVideoTotalPauseTime
-    player.cueVideoById(state.currentVideoId)
-  }
-})
-
-socket.on("sync-stats", (state) => {
-  roomState.value = state
-})
-
 socket.on("prepare-video", ({ videoId }) => {
-  partyState.value = "preparing"
-  player.cueVideoById(videoId)
-})
+  partyState.value = "preparing";
+  player.cueVideoById(videoId);
+});
 
 onMounted(() => {
-  const tag = document.createElement("script")
-  tag.src = "https://www.youtube.com/iframe_api"
-  document.body.appendChild(tag)
+  const tag = document.createElement("script");
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.body.appendChild(tag);
 
   window.onYouTubeIframeAPIReady = () => {
     player = new YT.Player(playerContainer.value, {
       videoId: "",
       playerVars: {
         rel: 0,
-        modestbranding: 1
+        modestbranding: 1,
       },
       events: {
         onReady: () => {
-          playerRef.value = player
-          const iframe = player.getIframe()
-          iframe.style.width = "100%"
-          iframe.style.height = "100%"
-          iframe.style.position = "absolute"
-          iframe.style.top = "0"
-          iframe.style.left = "0"
-          showNameModal.value = true
+          playerRef.value = player;
+          const iframe = player.getIframe();
+          iframe.style.width = "100%";
+          iframe.style.height = "100%";
+          iframe.style.position = "absolute";
+          iframe.style.top = "0";
+          iframe.style.left = "0";
+          showNameModal.value = true;
         },
         onStateChange: (event) => {
           if (event.data === YT.PlayerState.ENDED) {
-            socket.emit("video-ended", { roomId })
-            partyState.value = "waiting"
+            socket.emit("video-ended", { roomId });
+            partyState.value = "waiting";
           }
-          if (event.data === YT.PlayerState.CUED ) {
+          if (event.data === YT.PlayerState.CUED) {
             if (partyState.value === "catching-up") {
-              partyState.value = roomState.value.currentVideoStatus
+              partyState.value = roomState.value.currentVideoStatus;
               if (partyState.value === "playing") {
-                startPlayback(currentVideoStartTime.value)
+                startPlayback(currentVideoStartTime.value);
               }
             } else if (partyState.value === "preparing") {
-              socket.emit("video-loaded", { roomId })
+              socket.emit("video-loaded", { roomId });
             }
           }
-          if(event.data === YT.PlayerState.PAUSED){
-            if(partyState.value === "playing"){
-              if (userId.value===roomState.value.leader) {
-                socket.emit("video-state-change", { roomId, states: "pausing" })
+          if (event.data === YT.PlayerState.PAUSED) {
+            if (partyState.value === "playing") {
+              if (userId.value === roomState.value.leader) {
+                socket.emit("video-state-change", {
+                  roomId,
+                  states: "pausing",
+                });
               }
-              const latency = (Date.now() - (currentVideoStartTime.value+currentVideoPauseTime.value)) / 1000
-              console.log("st",Date.now() - (currentVideoStartTime.value+currentVideoPauseTime.value),latency)
-              player.seekTo(latency)
-              player.playVideo()
+              const latency =
+                (Date.now() -
+                  (currentVideoStartTime.value + currentVideoPauseTime.value)) /
+                1000;
+              console.log(
+                "st",
+                Date.now() -
+                  (currentVideoStartTime.value + currentVideoPauseTime.value),
+                latency,
+              );
+              player.seekTo(latency);
+              player.playVideo();
             }
-            if(partyState.value === "willpausing"){
-              partyState.value = "pausing"
+            if (partyState.value === "willpausing") {
+              partyState.value = "pausing";
             }
           }
-          if(event.data === YT.PlayerState.PLAYING){
-            if(partyState.value === "pausing"){
-              if (userId.value===roomState.value.leader) {
-                socket.emit("video-state-change", { roomId, states: "playing" })
+          if (event.data === YT.PlayerState.PLAYING) {
+            if (partyState.value === "pausing") {
+              if (userId.value === roomState.value.leader) {
+                socket.emit("video-state-change", {
+                  roomId,
+                  states: "playing",
+                });
               }
-              player.pauseVideo()
+              player.pauseVideo();
             }
-            if(partyState.value === "willplay"){
-              partyState.value = "playing"
+            if (partyState.value === "willplay") {
+              partyState.value = "playing";
             }
           }
-        }
-      }
-    })
-  }
+        },
+      },
+    });
+  };
 
   window.addEventListener("resize", () => {
     if (player) {
-      const iframe = player.getIframe()
-      iframe.style.width = "100%"
-      iframe.style.height = "100%"
+      const iframe = player.getIframe();
+      iframe.style.width = "100%";
+      iframe.style.height = "100%";
     }
-  })
-})
+  });
+});
 </script>
 
 <style scoped>
 .container {
   display: flex;
-  height: min(98vh); /* 縦幅の計算 */ 
+  height: min(98vh); /* 縦幅の計算 */
   overflow: hidden;
   background: #fff;
 }
@@ -426,8 +456,8 @@ onMounted(() => {
 }
 
 .tab-button.active {
-  color: #4CAF50;
-  border-bottom-color: #4CAF50;
+  color: #4caf50;
+  border-bottom-color: #4caf50;
 }
 
 .tab-button.leader-tab {
@@ -546,7 +576,7 @@ onMounted(() => {
 }
 
 .success-button {
-  background: #4CAF50;
+  background: #4caf50;
   color: white;
 }
 
@@ -616,7 +646,7 @@ onMounted(() => {
 
 .add-button {
   padding: 10px 15px;
-  background: #4CAF50;
+  background: #4caf50;
   color: white;
   border: none;
   border-radius: 4px;
@@ -732,14 +762,14 @@ onMounted(() => {
 
 .name-input:focus {
   outline: none;
-  border-color: #4CAF50;
+  border-color: #4caf50;
   box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
 }
 
 .modal-button {
   width: 100%;
   padding: 12px;
-  background: #4CAF50;
+  background: #4caf50;
   color: white;
   border: none;
   border-radius: 4px;

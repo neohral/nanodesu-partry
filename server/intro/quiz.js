@@ -10,6 +10,7 @@ module.exports = function (io, socket, roomState) {
         roomState[roomId].historyQueue = []
         roomState[roomId].gameStatus = "playing"
         roomState[roomId].hideQueue = true
+        io.to(roomId).emit("change-game-status", roomState[roomId].gameStatus)
         io.to(roomId).emit("sync-hide-queue", { hideQueue: roomState[roomId].hideQueue })
 
         for (const member of roomState[roomId].members) {

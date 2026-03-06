@@ -1,5 +1,8 @@
 import { ref } from "vue";
 export function useRoom(socket, roomId, roomStateRef, playerRef) {
+  const userId = ref("");
+  const hideQueue = ref(false);
+  const hideVideo = ref(false);
   const userName = ref("");
   const videoUrl = ref("");
   const showNameModal = ref(false);
@@ -54,6 +57,25 @@ export function useRoom(socket, roomId, roomStateRef, playerRef) {
   }
 
   function eventRegister(io, socket, roomState) {
+    socket.on("sync-stats", (state) => {
+      roomState.value = state;
+    });
+    
+    socket.on("room-init", (state, serverTime) => {
+      const dateTimeDiff = Date.now() - serverTime;
+      console.log("lag", dateTimeDiff);
+      userId.value = socket.id;
+      hideQueue.value = state.hideQueue;
+      hideVideo.value = state.opacity === "0" || state.opacity === 0;
+      changeOpacity(state.opacity);
+      if (state.currentVideoId) {
+        partyState.value = "catching-up";
+        currentVideoStartTime.value =
+          state.currentVideoStartTime + dateTimeDiff;
+        currentVideoPauseTime.value = state.currentVideoTotalPauseTime;
+        player.cueVideoById(state.currentVideoId);
+      }
+    });
     socket.on("queue-updated", (obj) => {
       roomState.value.queue = obj.queue;
       roomState.value.historyQueue = obj.historyQueue;
@@ -65,27 +87,34 @@ export function useRoom(socket, roomId, roomStateRef, playerRef) {
       hideVideo.value = state.opacity === 0;
       changeOpacity(state.opacity);
     });
-    socket.on("video-sync-state", ({ states, totalPauseTime  }) => {
-    currentVideoPauseTime = totalPauseTime 
+    socket.on("video-sync-state", ({ states, totalPauseTime }) => {
+      currentVideoPauseTime.value = totalPauseTime;
       if (states === "pausing") {
         partyState.value = "willpausing";
-        player.pauseVideo();
+        playerRef.value.pauseVideo();
       } else if (states === "playing") {
-        startPlayback(currentVideoStartTime + currentVideoPauseTime );
+        startPlayback(
+          currentVideoStartTime.value + currentVideoPauseTime.value,
+        );
       }
     });
     socket.on("start-playback", ({ timestamp }) => {
-      currentVideoStartTime = Date.now();
-      currentVideoPauseTime = 0;
-      startPlayback(timestamp);
+      currentVideoStartTime.value = Date.now();
+      currentVideoPauseTime.value = 0;
+      startPlayback(currentVideoStartTime.value);
     });
   }
 
   return {
+    userId,
     userName,
+    hideQueue,
+    hideVideo,
     videoUrl,
     showNameModal,
     partyState,
+    currentVideoStartTime,
+    currentVideoPauseTime,
     joinRoom,
     onReorder,
     addVideo,

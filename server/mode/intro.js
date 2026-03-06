@@ -44,6 +44,7 @@ function videoRegister(io, socket, roomState) {
 
     if (loadedCnt === roomState[roomId].members.length) {
       roomState[roomId].gameStatus = "prepared"
+      io.to(roomId).emit("change-game-status", roomState[roomId].gameStatus)
     }
     io.to(roomId).emit("sync-stats", roomState[roomId])
   })
@@ -61,6 +62,7 @@ function prepareVideo(io, roomId, roomState) {
     room.currentVideoStatus = "waiting"
     room.gameStatus = "waiting"
     room.hideQueue = false
+    io.to(roomId).emit("change-game-status", roomState[roomId].gameStatus)
     io.to(roomId).emit("sync-hide-queue", { hideQueue: room.hideQueue })
     io.to(roomId).emit("queue-updated", { queue: room.queue, historyQueue: room.historyQueue })
     io.to(roomId).emit("sync-stats", roomState[roomId])
