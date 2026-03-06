@@ -7,6 +7,7 @@ const initroom = {
   currentVideoId: null,
   currentVideoUser: null,
   currentVideoStartTime: null,
+  currentVideoTotalPauseTime: null,
   currentVideoStatus: "waiting",
   currentVideoChangeTime: null,
   queue: [],

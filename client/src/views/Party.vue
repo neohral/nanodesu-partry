@@ -173,10 +173,11 @@ const activeTab = ref("queue")
 const hideQueue = ref(false)
 const hideVideo = ref(false)
 const playerRef = ref(null)
-const dateTimeDiff=ref(0)
 
 let player = null
 const {
+  currentVideoStartTime,
+  currentVideoPauseTime,
   userName,
   showNameModal,
   videoUrl,
@@ -190,8 +191,6 @@ const {
   toggleOpacity,
   toggleHideQueue
 } = useRoom(socket, roomId, roomState,playerRef)
-
-let currentVideoStartTime = null
 eventRegister(io, socket, roomState)
 
 function changeOpacity (opacity) {
@@ -202,15 +201,16 @@ function changeOpacity (opacity) {
 }
 
 socket.on("room-init", (state,serverTime) => {
-  console.log("lag",dateTimeDiff.value)
-  dateTimeDiff.value = Date.now() - serverTime
+  const dateTimeDiff = Date.now() - serverTime
+  console.log("lag",dateTimeDiff)
   userId.value = socket.id
   hideQueue.value = state.hideQueue
   hideVideo.value = state.opacity === "0" || state.opacity === 0
   changeOpacity(state.opacity)
   if (state.currentVideoId) {
     partyState.value = "catching-up"
-    currentVideoStartTime = state.currentVideoStartTime + dateTimeDiff.value
+    currentVideoStartTime.value = state.currentVideoStartTime + dateTimeDiff
+    currentVideoPauseTime.value = state.currentVideoTotalPauseTime
     player.cueVideoById(state.currentVideoId)
   }
 })
@@ -222,20 +222,6 @@ socket.on("sync-stats", (state) => {
 socket.on("prepare-video", ({ videoId }) => {
   partyState.value = "preparing"
   player.cueVideoById(videoId)
-})
-
-socket.on("start-playback", ({ timestamp }) => {
-  startPlayback(timestamp)
-})
-
-socket.on("video-sync-state", ({ states,fixedStartTime }) => {
-  currentVideoStartTime = fixedStartTime + dateTimeDiff.value
-  if (states === "pausing") {
-    partyState.value = "willpausing"
-    player.pauseVideo()
-  } else if (states === "playing") {
-    startPlayback(currentVideoStartTime)
-  }
 })
 
 onMounted(() => {
@@ -270,7 +256,7 @@ onMounted(() => {
             if (partyState.value === "catching-up") {
               partyState.value = roomState.value.currentVideoStatus
               if (partyState.value === "playing") {
-                startPlayback(currentVideoStartTime)
+                startPlayback(currentVideoStartTime.value)
               }
             } else if (partyState.value === "preparing") {
               socket.emit("video-loaded", { roomId })
@@ -281,6 +267,9 @@ onMounted(() => {
               if (userId.value===roomState.value.leader) {
                 socket.emit("video-state-change", { roomId, states: "pausing" })
               }
+              const latency = (Date.now() - (currentVideoStartTime.value+currentVideoPauseTime.value)) / 1000
+              console.log("st",Date.now() - (currentVideoStartTime.value+currentVideoPauseTime.value),latency)
+              player.seekTo(latency)
               player.playVideo()
             }
             if(partyState.value === "willpausing"){

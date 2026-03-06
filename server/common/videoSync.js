@@ -19,19 +19,19 @@ function videoSyncRegister(io, socket, roomState){
 function videoStateChange(io, roomId, roomState, states) {
   if (states === "playing") {
     if(roomState[roomId].currentVideoChangeTime != null){
-      roomState[roomId].currentVideoStartTime += (Date.now() - roomState[roomId].currentVideoChangeTime);
+      roomState[roomId].currentVideoTotalPauseTime += Date.now() - roomState[roomId].currentVideoChangeTime
       roomState[roomId].currentVideoChangeTime = null
     }
   }
   if (states === "pausing") {
     // 一時停止を複数回行った場合に、開始時間を更新する
     if (roomState[roomId].currentVideoChangeTime) {
-      roomState[roomId].currentVideoStartTime += (Date.now() - roomState[roomId].currentVideoChangeTime);
+      roomState[roomId].currentVideoTotalPauseTime += Date.now() - roomState[roomId].currentVideoChangeTime
     }
     roomState[roomId].currentVideoChangeTime = Date.now()
   }
 
-  io.to(roomId).emit("video-sync-state", { states, fixedStartTime: roomState[roomId].currentVideoStartTime })
+  io.to(roomId).emit("video-sync-state", { states, totalPauseTime: roomState[roomId].currentVideoTotalPauseTime })
   roomState[roomId].currentVideoStatus = states
 }
 
@@ -39,6 +39,7 @@ function startPlayback(io,roomId,roomState) {
   io.to(roomId).emit("start-playback", { timestamp: Date.now() })
   roomState[roomId].currentVideoStatus = "playing"
   roomState[roomId].currentVideoStartTime = Date.now()
+  roomState[roomId].currentVideoTotalPauseTime = 0;
 }
 
 module.exports = {

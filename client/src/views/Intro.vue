@@ -255,12 +255,13 @@ const dateTimeDiff=ref(0)
 
 const playerRef = ref(null)
 let player = null
-let currentVideoStartTime = null
 const {
   userName,
   showNameModal,
   videoUrl,
   partyState,
+  currentVideoStartTime,
+  currentVideoPauseTime,
   joinRoom,
   onReorder,
   addVideo,
@@ -341,7 +342,8 @@ socket.on("room-init", (state, serverTime) => {
   changeOpacity(state.opacity)
   if (state.currentVideoId) {
     partyState.value = "catching-up"
-    currentVideoStartTime = state.currentVideoStartTime + dateTimeDiff.value
+    currentVideoStartTime.value = state.currentVideoStartTime + dateTimeDiff
+    currentVideoPauseTime.value = state.currentVideoTotalPauseTime
     player.cueVideoById(state.currentVideoId)
   }
 })
@@ -363,19 +365,6 @@ socket.on("prepare-video", ({ videoId, user }) => {
   player.cueVideoById(videoId)
 })
 
-socket.on("start-playback", ({ timestamp }) => {
-  startPlayback(timestamp)
-})
-
-socket.on("video-sync-state", ({ states, fixedStartTime }) => {
-  currentVideoStartTime = fixedStartTime + dateTimeDiff.value
-  if (states === "pausing") {
-    partyState.value = "willpausing"
-    player.pauseVideo()
-  } else if (states === "playing") {
-    startPlayback(currentVideoStartTime)
-  }
-})
 socket.on("user-answered-skip", () => {
   correctAnswerUser.value = { name: "正解者無し" }
   countdown.value = 10
@@ -482,7 +471,7 @@ onMounted(() => {
               if (userId.value === roomState.value.leader) {
                 socket.emit("video-state-change", { roomId, states: "pausing" })
               }
-              player.playVideo()
+              startPlayback(currentVideoStartTime+currentVideoPauseTime)
             }
             if (partyState.value === "willpausing") {
               partyState.value = "pausing"
