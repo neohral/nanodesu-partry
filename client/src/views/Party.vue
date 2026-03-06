@@ -156,7 +156,7 @@ import { useRoom } from "../composables/room"
 const route = useRoute()
 const roomId = route.params.roomId
 const socket = io(import.meta.env.VITE_SOCKET_PARTY_URL,{
-  path: "/socket/nanodesu/intro"
+  path: "/socket/nanodesu/party/"
 })
 
 const roomState = ref({
