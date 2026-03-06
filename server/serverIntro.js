@@ -34,6 +34,7 @@ io.on("connection", (socket) => {
     roomState[roomId].members.push({ id: socket.id, name: name, videoId: null, score: 0 })
     socket.emit("room-init", roomState[roomId], Date.now())
     io.to(roomId).emit("sync-stats", roomState[roomId])
+    io.to(roomId).emit("change-game-status", roomState[roomId].gameStatus)
   })
 
   socket.on("reorder-queue", ({ roomId, queue }) => {

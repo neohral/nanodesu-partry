@@ -371,6 +371,15 @@ const preGameCountdown = ref(0);
 
 const playerRef = ref(null);
 let player = null;
+
+const changeOpacity = (opacity)=> {
+  if (hideVideo.value && gamemaster.value) {
+    opacity = 0.1;
+  }
+  const iframe = player.getIframe();
+  iframe.style.opacity = opacity;
+}
+
 const {
   userId,
   currentVideoStartTime,
@@ -389,7 +398,7 @@ const {
   eventRegister,
   toggleOpacity,
   toggleHideQueue,
-} = useRoom(socket, roomId, roomState, playerRef);
+} = useRoom(socket, roomId, roomState, playerRef, changeOpacity);
 
 const allMembersHaveVideo = computed(() => {
   return (
@@ -417,14 +426,6 @@ function quizSkipToNextVideo() {
     socket.emit("user-answered-skip", { roomId });
     partyState.value = "waiting";
   }
-}
-
-function changeOpacity(opacity) {
-  if (hideVideo.value && gamemaster.value) {
-    opacity = 0.1;
-  }
-  const iframe = player.getIframe();
-  iframe.style.opacity = opacity;
 }
 
 function answerQuestion() {
@@ -570,7 +571,7 @@ onMounted(() => {
             if (partyState.value === "catching-up") {
               partyState.value = roomState.value.currentVideoStatus;
               if (partyState.value === "playing") {
-                startPlayback(currentVideoStartTime);
+                startPlayback(currentVideoStartTime.value);
               }
             } else if (partyState.value === "preparing") {
               socket.emit("video-loaded", { roomId });
@@ -585,7 +586,18 @@ onMounted(() => {
                   states: "pausing",
                 });
               }
-              startPlayback(currentVideoStartTime + currentVideoPauseTime);
+              const latency =
+                (Date.now() -
+                  (currentVideoStartTime.value + currentVideoPauseTime.value)) /
+                1000;
+              console.log(
+                "st",
+                Date.now() -
+                  (currentVideoStartTime.value + currentVideoPauseTime.value),
+                latency,
+              );
+              player.seekTo(latency);
+              player.playVideo();
             }
             if (partyState.value === "willpausing") {
               partyState.value = "pausing";

@@ -204,6 +204,14 @@ const playerContainer = ref(null);
 const sidebarOpen = ref(true);
 const activeTab = ref("queue");
 const playerRef = ref(null);
+const changeOpacity = (opacity)=> {
+  const iframe = player.getIframe();
+  iframe.style.opacity = opacity;
+  // opacityが0の時にクリック不可にする
+  iframe.style.pointerEvents =
+    opacity === "0" || opacity === 0 ? "none" : "auto";
+}
+
 
 let player = null;
 const {
@@ -224,16 +232,9 @@ const {
   eventRegister,
   toggleOpacity,
   toggleHideQueue,
-} = useRoom(socket, roomId, roomState, playerRef);
+} = useRoom(socket, roomId, roomState, playerRef,changeOpacity);
 eventRegister(io, socket, roomState);
 
-function changeOpacity(opacity) {
-  const iframe = player.getIframe();
-  iframe.style.opacity = opacity;
-  // opacityが0の時にクリック不可にする
-  iframe.style.pointerEvents =
-    opacity === "0" || opacity === 0 ? "none" : "auto";
-}
 
 socket.on("prepare-video", ({ videoId }) => {
   partyState.value = "preparing";

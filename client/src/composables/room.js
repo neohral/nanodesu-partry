@@ -1,5 +1,5 @@
 import { ref } from "vue";
-export function useRoom(socket, roomId, roomStateRef, playerRef) {
+export function useRoom(socket, roomId, roomStateRef, playerRef, changeOpacity) {
   const userId = ref("");
   const hideQueue = ref(false);
   const hideVideo = ref(false);
@@ -60,7 +60,7 @@ export function useRoom(socket, roomId, roomStateRef, playerRef) {
     socket.on("sync-stats", (state) => {
       roomState.value = state;
     });
-    
+
     socket.on("room-init", (state, serverTime) => {
       const dateTimeDiff = Date.now() - serverTime;
       console.log("lag", dateTimeDiff);
@@ -73,7 +73,7 @@ export function useRoom(socket, roomId, roomStateRef, playerRef) {
         currentVideoStartTime.value =
           state.currentVideoStartTime + dateTimeDiff;
         currentVideoPauseTime.value = state.currentVideoTotalPauseTime;
-        player.cueVideoById(state.currentVideoId);
+        playerRef.value.cueVideoById(state.currentVideoId);
       }
     });
     socket.on("queue-updated", (obj) => {
