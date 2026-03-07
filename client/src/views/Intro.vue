@@ -144,6 +144,13 @@
               placeholder="YouTube URL"
               class="url-input"
             />
+            <input
+              v-model.number="videoSeekTo"
+              type="number"
+              placeholder="開始時間（秒）"
+              class="seek-input"
+              min="0"
+            />
             <button @click="addVideo" class="add-button">Add</button>
           </div>
           <div v-if="!hideQueue" class="queue-display">
@@ -341,6 +348,9 @@ import { useRoute } from "vue-router";
 import { io } from "socket.io-client";
 import draggable from "vuedraggable";
 import { useRoom } from "../composables/room";
+import clickSound from '@/aseets/sounds/click.mp3'
+import correctSound from '@/aseets/sounds/correct.mp3'
+import incorrectSound from '@/aseets/sounds/incorrect.mp3'
 
 const route = useRoute();
 const roomId = route.params.roomId;
@@ -368,6 +378,9 @@ const volume = ref(1);
 const playerPaused = ref(false);
 const gameEnded = ref(false);
 const preGameCountdown = ref(0);
+const clickSoundAudio = new Audio(clickSound)
+const correctAudio = new Audio(correctSound)
+const incorrectAudio = new Audio(incorrectSound)
 
 const playerRef = ref(null);
 let player = null;
@@ -384,6 +397,8 @@ const {
   userId,
   currentVideoStartTime,
   currentVideoPauseTime,
+  currentVideoSeekTo,
+  videoSeekTo,
   userName,
   hideQueue,
   hideVideo,
@@ -435,7 +450,7 @@ function answerQuestion() {
 function correctAnswer() {
   const score =
     Math.round(
-      (100 - (player.getCurrentTime() / player.getDuration()) * 100) * 10,
+      (100 - ((player.getCurrentTime() - currentVideoSeekTo.value) / (player.getDuration() - currentVideoSeekTo.value)) * 100) * 10,
     ) / 10;
   socket.emit("gamemaster-answer", { roomId, correct: true, score });
 }
@@ -466,18 +481,22 @@ socket.on("change-game-status", (gameStatus) => {
   gameStarted.value = gameStatus === "playing" ? true : false;
 });
 
-socket.on("user-answered", ({ users }) => {
+socket.on("user-answered", ({ users, isAddAnswered }) => {
+  if(isAddAnswered){
+    clickSoundAudio.play()
+  }
   answeringUser.value = users;
 });
 
-socket.on("prepare-video", ({ videoId, user, opacity }) => {
+socket.on("prepare-video", ({ videoId, seekTo, user, opacity }) => {
   roomState.value.gameMaster = user;
   gamemaster.value = user === userId.value;
   roomState.value.opacity = opacity
   hideVideo.value = opacity === 0;
   changeOpacity(roomState.value.opacity);
   partyState.value = "preparing";
-  player.cueVideoById(videoId);
+  currentVideoSeekTo.value = seekTo
+  player.cueVideoById(videoId,currentVideoSeekTo.value);
 });
 
 socket.on("user-answered-skip", () => {
@@ -497,6 +516,7 @@ socket.on("user-answered-skip", () => {
 });
 socket.on("user-answered-result", ({ user, correct }) => {
   if (correct) {
+    correctAudio.play()
     correctAnswerUser.value = user;
     answeringUser.value = [];
     countdown.value = 10;
@@ -512,6 +532,7 @@ socket.on("user-answered-result", ({ user, correct }) => {
       }
     }, 1000);
   } else {
+    incorrectAudio.play()
     // 不正解の場合は3秒間早押しボタンを押せないようにする
     if (user.id === userId.value) {
       answerCooldown.value = 3;
@@ -598,7 +619,7 @@ onMounted(() => {
                   (currentVideoStartTime.value + currentVideoPauseTime.value),
                 latency,
               );
-              player.seekTo(latency);
+              player.seekTo(latency+currentVideoSeekTo.value);
               player.playVideo();
             }
             if (partyState.value === "willpausing") {
@@ -1121,6 +1142,7 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 
 .url-input {
@@ -1128,6 +1150,14 @@ onMounted(() => {
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
+}
+
+.seek-input {
+  width: 120px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 50px;
 }
 
 .add-button {

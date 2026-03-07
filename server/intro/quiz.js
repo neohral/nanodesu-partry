@@ -29,7 +29,7 @@ module.exports = function (io, socket, roomState) {
         if (member) {
             if (room.gameAnswerQueue.find(m => m.id === member.id)) return
             room.gameAnswerQueue.push(member)
-            io.to(roomId).emit("user-answered", { users: room.gameAnswerQueue })
+            io.to(roomId).emit("user-answered", { users: room.gameAnswerQueue, isAddAnswered: true })
             videoStateChange(io, roomId, roomState, "pausing")
         }
     })
@@ -49,9 +49,9 @@ module.exports = function (io, socket, roomState) {
             io.to(roomId).emit("user-answered-result", { user: answeredUser, correct })
             io.to(roomId).emit("sync-opacity", { opacity: roomState[roomId].opacity })
             io.to(roomId).emit("change-game-status", roomState[roomId].gameStatus)
-            io.to(roomId).emit("user-answered", { users: room.gameAnswerQueue })
+            io.to(roomId).emit("user-answered", { users: room.gameAnswerQueue, isAddAnswered: false })
         } else {
-            io.to(roomId).emit("user-answered", { users: room.gameAnswerQueue })
+            io.to(roomId).emit("user-answered", { users: room.gameAnswerQueue, isAddAnswered: false })
             if (room.gameAnswerQueue.length === 0) {
                 videoStateChange(io, roomId, roomState, "playing")
             }

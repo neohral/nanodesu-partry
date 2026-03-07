@@ -9,6 +9,7 @@ const initroom = {
     currentVideoTotalPauseTime: null,
     currentVideoStatus: "waiting",
     currentVideoChangeTime: null,
+    currentVideoSeekTo: 0,
     queue: [],
     historyQueue: [],
     loadingUsers: [],
@@ -18,17 +19,19 @@ const initroom = {
     hideQueue: false
 }
 function videoRegister(io, socket, roomState) {
-    socket.on("add-video", async ({ roomId, videoId }) => {
+    socket.on("add-video", async ({ roomId, videoId, seekTo }) => {
         const room = roomState[roomId]
         const info = await fetchVideoInfo(videoId)
         if (!info) return
 
-        const username = room.members.find(m => m.id === socket.id)?.name
+        const member = room.members.find(m => m.id === socket.id)
+        if (!member) return
 
         const video = {
             id: crypto.randomUUID(),
             user: socket.id,
-            userName: username ? username : "anonymous",
+            userName: member.name,
+            seekTo: seekTo,
             ...info
         }
 
@@ -51,6 +54,7 @@ function prepareVideo(io, roomId, roomState) {
     if (!next) {
         room.currentVideoId = null
         room.currentVideoStatus = "waiting"
+        room.currentVideoSeekTo = 0
         io.to(roomId).emit("queue-updated", { queue: room.queue, historyQueue: room.historyQueue })
         return
     }
@@ -60,7 +64,8 @@ function prepareVideo(io, roomId, roomState) {
     room.expectedUsers = Array.from(clients)
     room.loadingUsers = []
     room.currentVideoPauseStacks = 0
-    io.to(roomId).emit("prepare-video", { videoId: next.videoId })
+    room.currentVideoSeekTo = next.seekTo
+    io.to(roomId).emit("prepare-video", { videoId: next.videoId, seekTo: room.currentVideoSeekTo, })
     io.to(roomId).emit("queue-updated", { queue: room.queue, historyQueue: room.historyQueue })
 
     room.timeoutId = setTimeout(() => startPlayback(roomId), 5000)

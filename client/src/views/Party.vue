@@ -15,13 +15,7 @@
     <div v-if="showNameModal" class="modal-overlay">
       <div class="modal-dialog">
         <h3>あなたの名前を入力してください</h3>
-        <input
-          v-model="userName"
-          type="text"
-          placeholder="名前を入力"
-          class="name-input"
-          @keyup.enter="joinRoom"
-        />
+        <input v-model="userName" type="text" placeholder="名前を入力" class="name-input" @keyup.enter="joinRoom" />
         <button @click="joinRoom" class="modal-button">参加</button>
       </div>
     </div>
@@ -30,34 +24,20 @@
     <div class="sidebar" :class="{ open: sidebarOpen }">
       <div class="sidebar-header">
         <h3>
-          {{ roomId }} watch party<span v-if="userId === roomState.leader"
-            >👑</span
-          >
+          {{ roomId }} watch party<span v-if="userId === roomState.leader">👑</span>
         </h3>
       </div>
 
       <!-- Tabs -->
       <div class="sidebar-tabs">
-        <button
-          @click="activeTab = 'queue'"
-          :class="{ active: activeTab === 'queue' }"
-          class="tab-button"
-        >
+        <button @click="activeTab = 'queue'" :class="{ active: activeTab === 'queue' }" class="tab-button">
           Queue
         </button>
-        <button
-          @click="activeTab = 'settings'"
-          :class="{ active: activeTab === 'settings' }"
-          class="tab-button"
-        >
+        <button @click="activeTab = 'settings'" :class="{ active: activeTab === 'settings' }" class="tab-button">
           Settings
         </button>
-        <button
-          v-if="userId === roomState.leader"
-          @click="activeTab = 'leader'"
-          :class="{ active: activeTab === 'leader' }"
-          class="tab-button leader-tab"
-        >
+        <button v-if="userId === roomState.leader" @click="activeTab = 'leader'"
+          :class="{ active: activeTab === 'leader' }" class="tab-button leader-tab">
           Commands
         </button>
       </div>
@@ -66,21 +46,12 @@
         <!-- Queue Tab -->
         <div v-if="activeTab === 'queue'" class="tab-content">
           <div class="input-section">
-            <input
-              v-model="videoUrl"
-              placeholder="YouTube URL"
-              class="url-input"
-            />
+            <input v-model="videoUrl" placeholder="YouTube URL" class="url-input" />
+            <input v-model.number="videoSeekTo" type="number" placeholder="開始時間（秒）" class="seek-input" min="0" />
             <button @click="addVideo" class="add-button">Add</button>
           </div>
-
           <div v-if="!hideQueue" class="queue-display">
-            <draggable
-              v-model="roomState.queue"
-              item-key="id"
-              @end="onReorder"
-              class="queue-container"
-            >
+            <draggable v-model="roomState.queue" item-key="id" @end="onReorder" class="queue-container">
               <template #item="{ element }">
                 <div class="queue-item">
                   <img :src="element.thumbnail" width="80" />
@@ -92,17 +63,10 @@
               </template>
             </draggable>
 
-            <div
-              v-if="roomState.historyQueue.length > 0"
-              class="history-section"
-            >
+            <div v-if="roomState.historyQueue.length > 0" class="history-section">
               <h4>再生済み</h4>
               <div class="history-queue-container">
-                <div
-                  v-for="element in roomState.historyQueue"
-                  :key="`history-${element.id}`"
-                  class="queue-item"
-                >
+                <div v-for="element in roomState.historyQueue" :key="`history-${element.id}`" class="queue-item">
                   <img :src="element.thumbnail" width="80" />
                   <div class="queue-item-info">
                     <div class="queue-item-title">{{ element.title }}</div>
@@ -122,31 +86,19 @@
           <div class="members-section">
             <h4>Members ({{ roomState.members.length }})</h4>
             <div class="members-list">
-              <div
-                v-for="member in roomState.members"
-                :key="member.id"
-                class="member-item"
-              >
+              <div v-for="member in roomState.members" :key="member.id" class="member-item">
                 <span>{{ member.name || "Anonymous" }}</span>
-                <span v-if="member.id === roomState.leader" class="leader-badge"
-                  >Leader</span
-                >
+                <span v-if="member.id === roomState.leader" class="leader-badge">Leader</span>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Leader Commands Tab -->
-        <div
-          v-if="activeTab === 'leader' && userId === roomState.leader"
-          class="tab-content"
-        >
+        <div v-if="activeTab === 'leader' && userId === roomState.leader" class="tab-content">
           <div class="leader-commands">
             <h4>Leader Commands</h4>
-            <button
-              @click="skipToNextVideo"
-              class="command-button danger-button"
-            >
+            <button @click="skipToNextVideo" class="command-button danger-button">
               Skip to next video
             </button>
           </div>
@@ -155,21 +107,13 @@
             <h4>Leader Settings</h4>
             <div class="setting-item">
               <label>
-                <input
-                  type="checkbox"
-                  v-model="hideQueue"
-                  @change="toggleHideQueue"
-                />
+                <input type="checkbox" v-model="hideQueue" @change="toggleHideQueue" />
                 Hide queue
               </label>
             </div>
             <div class="setting-item">
               <label>
-                <input
-                  type="checkbox"
-                  v-model="hideVideo"
-                  @change="toggleOpacity"
-                />
+                <input type="checkbox" v-model="hideVideo" @change="toggleOpacity" />
                 Hide video
               </label>
             </div>
@@ -189,7 +133,7 @@ import { useRoom } from "../composables/room";
 
 const route = useRoute();
 const roomId = route.params.roomId;
-const socket = io(import.meta.env.VITE_SOCKET_PARTY_URL,{
+const socket = io(import.meta.env.VITE_SOCKET_PARTY_URL, {
   path: import.meta.env.VITE_SOCKET_PARTY_PATH
 })
 
@@ -204,7 +148,7 @@ const playerContainer = ref(null);
 const sidebarOpen = ref(true);
 const activeTab = ref("queue");
 const playerRef = ref(null);
-const changeOpacity = (opacity)=> {
+const changeOpacity = (opacity) => {
   const iframe = player.getIframe();
   iframe.style.opacity = opacity;
   // opacityが0の時にクリック不可にする
@@ -218,6 +162,8 @@ const {
   userId,
   currentVideoStartTime,
   currentVideoPauseTime,
+  currentVideoSeekTo,
+  videoSeekTo,
   userName,
   hideQueue,
   hideVideo,
@@ -232,13 +178,14 @@ const {
   eventRegister,
   toggleOpacity,
   toggleHideQueue,
-} = useRoom(socket, roomId, roomState, playerRef,changeOpacity);
+} = useRoom(socket, roomId, roomState, playerRef, changeOpacity);
 eventRegister(io, socket, roomState);
 
 
-socket.on("prepare-video", ({ videoId }) => {
+socket.on("prepare-video", ({ videoId, seekTo }) => {
   partyState.value = "preparing";
-  player.cueVideoById(videoId);
+  currentVideoSeekTo.value = seekTo
+  player.cueVideoById(videoId, currentVideoSeekTo.value);
 });
 
 onMounted(() => {
@@ -294,10 +241,10 @@ onMounted(() => {
               console.log(
                 "st",
                 Date.now() -
-                  (currentVideoStartTime.value + currentVideoPauseTime.value),
+                (currentVideoStartTime.value + currentVideoPauseTime.value),
                 latency,
               );
-              player.seekTo(latency);
+              player.seekTo(latency+currentVideoSeekTo.value);
               player.playVideo();
             }
             if (partyState.value === "willpausing") {
@@ -336,7 +283,8 @@ onMounted(() => {
 <style scoped>
 .container {
   display: flex;
-  height: min(98vh); /* 縦幅の計算 */
+  height: min(98vh);
+  /* 縦幅の計算 */
   overflow: hidden;
   background: #fff;
 }
@@ -486,6 +434,7 @@ onMounted(() => {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -636,6 +585,7 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 
 .url-input {
@@ -643,6 +593,14 @@ onMounted(() => {
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
+}
+
+.seek-input {
+  width: 120px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 50px;
 }
 
 .add-button {
@@ -789,6 +747,7 @@ onMounted(() => {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

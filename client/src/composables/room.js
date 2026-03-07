@@ -9,6 +9,8 @@ export function useRoom(socket, roomId, roomStateRef, playerRef, changeOpacity) 
   const partyState = ref("waiting");
   const currentVideoStartTime = ref(0);
   const currentVideoPauseTime = ref(0);
+  const currentVideoSeekTo = ref(0);
+  const videoSeekTo = ref(0)
 
   function joinRoom() {
     const name = userName.value.trim() || "Anonymous";
@@ -24,8 +26,9 @@ export function useRoom(socket, roomId, roomStateRef, playerRef, changeOpacity) 
     console.log("add");
     const id = extractVideoId(videoUrl.value);
     if (!id) return;
-    socket.emit("add-video", { roomId, videoId: id });
+    socket.emit("add-video", { roomId, videoId: id, seekTo: videoSeekTo.value });
     videoUrl.value = "";
+    videoSeekTo.value = 0;
   }
 
   function extractVideoId(url) {
@@ -36,9 +39,9 @@ export function useRoom(socket, roomId, roomStateRef, playerRef, changeOpacity) 
 
   function startPlayback(timestamp) {
     const latency = (Date.now() - timestamp) / 1000;
-    console.log("st", Date.now() - timestamp, latency);
+    console.log("start", latency);
     const player = playerRef.value;
-    player.seekTo(latency);
+    player.seekTo(latency + currentVideoSeekTo.value);
     player.playVideo();
     partyState.value = "willplay";
   }
@@ -73,7 +76,8 @@ export function useRoom(socket, roomId, roomStateRef, playerRef, changeOpacity) 
         currentVideoStartTime.value =
           state.currentVideoStartTime + dateTimeDiff;
         currentVideoPauseTime.value = state.currentVideoTotalPauseTime;
-        playerRef.value.cueVideoById(state.currentVideoId);
+        currentVideoSeekTo.value = state.currentVideoSeekTo
+        playerRef.value.cueVideoById(state.currentVideoId,currentVideoSeekTo.value);
       }
     });
     socket.on("queue-updated", (obj) => {
@@ -115,6 +119,8 @@ export function useRoom(socket, roomId, roomStateRef, playerRef, changeOpacity) 
     partyState,
     currentVideoStartTime,
     currentVideoPauseTime,
+    currentVideoSeekTo,
+    videoSeekTo,
     joinRoom,
     onReorder,
     addVideo,
