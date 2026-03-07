@@ -10,7 +10,8 @@ export function useRoom(socket, roomId, roomStateRef, playerRef, changeOpacity) 
   const currentVideoStartTime = ref(0);
   const currentVideoPauseTime = ref(0);
   const currentVideoSeekTo = ref(0);
-  const videoSeekTo = ref(0)
+  const videoSeekTo = ref(0);
+  const playerPaused = ref(false);
 
   function joinRoom() {
     const name = userName.value.trim() || "Anonymous";
@@ -41,9 +42,9 @@ export function useRoom(socket, roomId, roomStateRef, playerRef, changeOpacity) 
     const latency = (Date.now() - timestamp) / 1000;
     console.log("start", latency);
     const player = playerRef.value;
+    partyState.value = "willplay";
     player.seekTo(latency + currentVideoSeekTo.value);
     player.playVideo();
-    partyState.value = "willplay";
   }
 
   function skipToNextVideo() {
@@ -57,6 +58,51 @@ export function useRoom(socket, roomId, roomStateRef, playerRef, changeOpacity) 
 
   function toggleHideQueue() {
     socket.emit("toggle-hide-queue", { roomId });
+  }
+
+  function stateChange(event) {
+    const player = playerRef.value;
+    console.log(event.data,partyState.value)
+    if (event.data === YT.PlayerState.CUED) {
+      if (partyState.value === "catching-up") {
+        partyState.value = roomStateRef.value.currentVideoStatus;
+        if (partyState.value === "playing") {
+          startPlayback(currentVideoStartTime.value);
+        }
+      } else if (partyState.value === "preparing") {
+        socket.emit("video-loaded", { roomId });
+      }
+    }
+    if (event.data === YT.PlayerState.PAUSED) {
+      playerPaused.value = true;
+      if (partyState.value === "playing") {
+        if (userId.value === roomStateRef.value.leader) {
+          socket.emit("video-state-change", {
+            roomId,
+            states: "pausing",
+          });
+        }
+        startPlayback(currentVideoStartTime.value + currentVideoPauseTime.value)
+      }
+      if (partyState.value === "willpausing") {
+        partyState.value = "pausing";
+      }
+    }
+    if (event.data === YT.PlayerState.PLAYING) {
+       playerPaused.value = false;
+      if (partyState.value === "pausing") {
+        if (userId.value === roomStateRef.value.leader) {
+          socket.emit("video-state-change", {
+            roomId,
+            states: "playing",
+          });
+        }
+        player.pauseVideo();
+      }
+      if (partyState.value === "willplay") {
+        partyState.value = "playing";
+      }
+    }
   }
 
   function eventRegister(io, socket, roomState) {
@@ -121,6 +167,7 @@ export function useRoom(socket, roomId, roomStateRef, playerRef, changeOpacity) 
     currentVideoPauseTime,
     currentVideoSeekTo,
     videoSeekTo,
+    playerPaused,
     joinRoom,
     onReorder,
     addVideo,
@@ -130,5 +177,6 @@ export function useRoom(socket, roomId, roomStateRef, playerRef, changeOpacity) 
     eventRegister,
     toggleOpacity,
     toggleHideQueue,
+    stateChange,
   };
 }
