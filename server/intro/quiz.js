@@ -20,7 +20,7 @@ module.exports = function (io, socket, roomState) {
             }
         }
         io.to(roomId).emit("sync-stats", roomState[roomId])
-        prepareVideo(io, roomId, roomState,)
+        prepareVideo(io, roomId, roomState)
     })
 
     socket.on("answer-question", ({ roomId, userId }) => {
