@@ -1,5 +1,7 @@
 const crypto = require("crypto")
 const { fetchVideoInfo } = require("../common/youtube")
+const {startPlayback } =
+  require("../common/videoSync")
 
 const mode = "intro"
 const initroom = {
@@ -85,7 +87,7 @@ function prepareVideo(io, roomId, roomState) {
   io.to(roomId).emit("prepare-video", { videoId: next.videoId,seekTo: room.currentVideoSeekTo, user: next.user, opacity: room.opacity })
   io.to(roomId).emit("queue-updated", { queue: room.queue, historyQueue: room.historyQueue })
   io.to(roomId).emit("change-game-status", roomState[roomId].gameStatus)
-  room.timeoutId = setTimeout(() => startPlayback(roomId), 5000)
+  room.timeoutId = setTimeout(() => startPlayback(io, roomId, roomState), 5000)
 }
 
 module.exports = {
